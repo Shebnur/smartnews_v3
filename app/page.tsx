@@ -3,7 +3,8 @@
 // Added FC (Functional Component) to the import
 import React, { useState, useEffect, useMemo, FC } from 'react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Search, Filter, TrendingUp, Globe, BookOpen, DollarSign, Zap, Shield, Heart, Car, Clock, Bell, MessageSquare, ChevronDown, X, Check, ArrowRight, BarChart3, Brain, Mail, Calendar, AlertCircle, TrendingDown, Minus, MapPin, CheckSquare, Square, Bookmark, Share2, ExternalLink, Eye, Sparkles } from 'lucide-react';
+import { Search, Filter, TrendingUp, Globe, BookOpen, DollarSign, Zap, Shield, Heart, Car, Clock, Bell, MessageSquare, ChevronDown,ChevronUp, X, Check, ArrowRight, BarChart3, Brain, Mail, Calendar, AlertCircle, TrendingDown, Minus, MapPin, CheckSquare, Square, Bookmark, Share2, ExternalLink, Eye, Sparkles, Copy, Building2,FileCode,HelpCircle } from 'lucide-react';
+import LanguageSelector from './components/LanguageSelector';
 
 // Define the shape of a single news article
 interface NewsArticle {
@@ -28,6 +29,13 @@ interface NewsArticle {
   };
   keyIndicators: string[];
   readTime: number;
+  language?: string;
+  publishedDate?: string;
+  sourceUrl?: string;
+  fullContent?: string;
+  fullHtmlContent?: string;
+  author?: string;
+  imageUrl?: string;
 }
 
 // Define the shape of a chat message
@@ -45,6 +53,7 @@ interface Filters {
   languages: string[];
   sources: string[];
   customTopic: string;
+  customCategory: string;
   dateFrom: string;
   dateTo: string;
   useCustomDate: boolean;
@@ -60,7 +69,7 @@ interface Metric {
   value: string | number;
   change: string;
   trend: string;
-  icon: React.ElementType; // Type for a component like 'Globe'
+  icon: React.ElementType; /* Type for a component like 'Globe'*/
   color: string;
 }
 
@@ -73,8 +82,6 @@ interface Country {
 }
 
 // --- COMPONENT START ---
-
-// Correct syntax is: const App: FC = () => {
 const App: FC = () => {
   const [filters, setFilters] = useState<Filters>({
     timeRange: '7d',
@@ -84,6 +91,7 @@ const App: FC = () => {
     languages: ['en'],
     sources: [],
     customTopic: '',
+    customCategory: '',
     dateFrom: '',
     dateTo: '',
     useCustomDate: false
@@ -105,8 +113,34 @@ const App: FC = () => {
   const [chatInput, setChatInput] = useState('');
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [showSubscribeModal, setShowSubscribeModal] = useState(false);
+  const [subscribeMethod, setSubscribeMethod] = useState<'website' | 'email' | 'telegram'>('website');
+  const [subscribeFrequency, setSubscribeFrequency] = useState<'realtime' | 'hourly' | 'daily' | 'weekly'>('daily');
+  const [subscribeEmail, setSubscribeEmail] = useState('');
+  const [subscribeTelegram, setSubscribeTelegram] = useState('');
   const [selectedNewsForSubscription, setSelectedNewsForSubscription] = useState<NewsArticle | null>(null);
+  const [showFullNewsModal, setShowFullNewsModal] = useState(false);
+  const [selectedFullNews, setSelectedFullNews] = useState<NewsArticle | null>(null);
+  const [loadingFullArticle, setLoadingFullArticle] = useState(false);
+  const [articleContent, setArticleContent] = useState<{content: string; html: string; author?: string} | null>(null);
   const [savedArticles, setSavedArticles] = useState<number[]>([]);
+  const [showQueryModal, setShowQueryModal] = useState(false);
+  const [customQuery, setCustomQuery] = useState('');
+  const [initialCustomQuery, setInitialCustomQuery] = useState('');
+  const [queryCopied, setQueryCopied] = useState(false);
+  const [showFiltersPanel, setShowFiltersPanel] = useState(true);
+  const [queryValidationError, setQueryValidationError] = useState<string | null>(null);
+  const [querySuggestion, setQuerySuggestion] = useState<string | null>(null);
+  const [showQueryHelp, setShowQueryHelp] = useState(false);
+  const [queryAutocomplete, setQueryAutocomplete] = useState<Array<{text: string; type: string; description: string}>>([]);
+  const [autocompletePosition, setAutocompletePosition] = useState({ top: 0, left: 0 });
+  const [queryErrors, setQueryErrors] = useState<Array<{start: number; end: number; message: string}>>([]);
+  const [searchTerms, setSearchTerms] = useState({
+    regions: '',
+    countries: '',
+    categories: '',
+    languages: '',
+    sources: ''
+  });
   const [readArticles, setReadArticles] = useState<number[]>([]);
 
   // Comprehensive regions covering the entire world
@@ -298,14 +332,14 @@ const App: FC = () => {
   // Get countries filtered by selected regions
   const filteredCountries = useMemo(() => {
     if (filters.regions.length === 0) {
-      // Return all countries if no region selected
+      /*Return all countries if no region selected*/
       return Object.values(allCountries).flat();
     }
-    // Added type for region
     return filters.regions.flatMap((region: string) => allCountries[region] || []);
   }, [filters.regions]);
 
   const categories = [
+    { id: 'custom', name: 'Custom Category', icon: Sparkles, color: 'purple' },
     { id: 'politics', name: 'Politics & Strategy', icon: Shield, color: 'blue' },
     { id: 'economy', name: 'Economy & Finance', icon: DollarSign, color: 'green' },
     { id: 'technology', name: 'Technology & AI', icon: Zap, color: 'purple' },
@@ -349,7 +383,6 @@ const App: FC = () => {
     { id: 'fr', name: 'French', flag: '🇫🇷' },
     { id: 'de', name: 'German', flag: '🇩🇪' },
     { id: 'pt', name: 'Portuguese', flag: '🇵🇹' }
-    // Removed duplicate 'kr'
   ];
 
   // Added type for newsSources
@@ -371,7 +404,7 @@ const App: FC = () => {
   };
 
   // Mock news data with more realistic content
-  const mockNews: NewsArticle[] = [ // Added type here
+  const mockNews: NewsArticle[] = [ 
     {
       id: 1,
       title: 'Azerbaijan Signs Historic $15B Energy Deal with European Union',
@@ -391,7 +424,10 @@ const App: FC = () => {
         '12m': { trend: 'stable', value: 35, description: 'Market stabilization phase' }
       },
       keyIndicators: ['Energy prices', 'Trade volume', 'Infrastructure investment', 'Political stability'],
-      readTime: 8
+      readTime: 8,
+      language: 'en',
+      publishedDate: '2025-10-25T10:30:00Z',
+      sourceUrl: 'https://trend.az/azerbaijan/business/3865432.html'
     },
     {
       id: 2,
@@ -412,7 +448,11 @@ const App: FC = () => {
         '12m': { trend: 'up', value: 70, description: 'Global adoption begins' }
       },
       keyIndicators: ['Accuracy rate', 'Clinical adoption', 'Cost reduction', 'Patient outcomes'],
-      readTime: 12
+      readTime: 12,
+      language: 'en',
+      publishedDate: '2025-10-24T08:00:00Z',
+      sourceUrl: 'https://www.technologyreview.com/2025/10/24/ai-cancer-detection/'
+    
     },
     {
       id: 3,
@@ -433,7 +473,10 @@ const App: FC = () => {
         '12m': { trend: 'down', value: -8, description: 'Correction to $2,500 as markets stabilize' }
       },
       keyIndicators: ['Central bank buying', 'USD index', 'Inflation rates', 'Geopolitical risk index', 'Mining output'],
-      readTime: 6
+      readTime: 6,
+      language: 'en',
+      publishedDate: '2025-10-26T09:30:00Z',
+      sourceUrl: 'https://www.bloomberg.com/news/articles/gold-surge-record-high'
     },
     {
       id: 4,
@@ -454,7 +497,10 @@ const App: FC = () => {
         '12m': { trend: 'stable', value: 50, description: 'Sustained growth trajectory' }
       },
       keyIndicators: ['Visitor numbers', 'Tourism revenue', 'International partnerships', 'Hotel occupancy'],
-      readTime: 5
+      readTime: 5,
+      language: 'en',
+      publishedDate: '2025-10-23T14:00:00Z',
+      sourceUrl: 'https://www.artnews.com/azerbaijan-museum-opening/'
     },
     {
       id: 5,
@@ -475,7 +521,10 @@ const App: FC = () => {
         '12m': { trend: 'up', value: 55, description: 'Industry transformation finalized' }
       },
       keyIndicators: ['EV sales volume', 'Charging infrastructure', 'Battery costs', 'Policy incentives', 'Manufacturing capacity'],
-      readTime: 7
+      readTime: 7,
+      language: 'en',
+      publishedDate: '2025-10-27T10:15:00Z',
+      sourceUrl: 'https://www.automotivenews.com/ev-overtake-europe/'
     },
     {
       id: 6,
@@ -496,7 +545,10 @@ const App: FC = () => {
         '12m': { trend: 'up', value: 60, description: 'Ecosystem maturation, 200+ funded' }
       },
       keyIndicators: ['Applications received', 'Funding deployed', 'Startups launched', 'Jobs created', 'Carbon impact'],
-      readTime: 9
+      readTime: 9,
+      language: 'en',
+      publishedDate: '2025-10-25T11:00:00Z',
+      sourceUrl: 'https://www.devex.com/news/climate-tech-fund-emerging-markets'
     }
   ];
 
@@ -528,15 +580,11 @@ const App: FC = () => {
   ];
 
   useEffect(() => {
-    // Simulate loading news
-    setLoading(true);
-    setTimeout(() => {
-      setNews(mockNews);
-      setLoading(false);
-    }, 800);
-  }, [filters]);
+    // Fetch real news when component mounts or filters change
+    fetchRealNews();
+  }, [filters.countries, filters.categories, filters.languages]);
 
-  // Added type for filterType
+
   const toggleFilter = (filterType: ShowFilterKey) => {
     setShowFilters(prev => ({ ...prev, [filterType]: !prev[filterType] }));
   };
@@ -544,7 +592,7 @@ const App: FC = () => {
   // Added types for filterKey and value
   const handleMultiSelect = (filterKey: FilterArrayKey, value: string) => {
     setFilters(prev => {
-      const currentValues = prev[filterKey] as string[]; // Cast to string[]
+      const currentValues = prev[filterKey] as string[];
       const newValues = currentValues.includes(value)
         ? currentValues.filter(v => v !== value)
         : [...currentValues, value];
@@ -565,7 +613,7 @@ const App: FC = () => {
 
   // Added type for filterKey
   const clearFilter = (filterKey: FilterArrayKey | 'regions' | 'countries' | 'categories') => {
-    // Widened type to accept strings from the clear buttons
+    /* Widened type to accept strings from the clear buttons*/
     if (filterKey === 'regions' || filterKey === 'countries' || filterKey === 'categories' || filterKey === 'languages' || filterKey === 'sources') {
       setFilters(prev => ({ ...prev, [filterKey]: [] }));
     }
@@ -613,6 +661,52 @@ const App: FC = () => {
     if (trend === 'down') return <TrendingDown className="w-4 h-4 text-red-500" />;
     return <Minus className="w-4 h-4 text-gray-500" />;
   };
+// Fetch real news from scrapers
+  const fetchRealNews = async () => {
+    setLoading(true);
+    try {
+      // Build query with filters
+      const params = new URLSearchParams();
+      
+      if (filters.countries.length > 0) {
+        params.append('country', filters.countries[0]);
+      }
+      
+      if (filters.categories.length > 0) {
+        params.append('category', filters.categories[0]);
+      }
+      
+      // Determine which sources to scrape based on filters
+      const sources: string[] = [];
+      if (filters.countries.includes('azerbaijan') || filters.countries.includes('az')) {
+        sources.push('azertac', 'trend');
+      }
+      if (filters.categories.includes('economy')) {
+        sources.push('bloomberg', 'reuters');
+      }
+      if (sources.length === 0) {
+        // Default: scrape all
+        sources.push('azertac', 'trend', 'bbc', 'reuters');
+      }
+      
+      params.append('sources', sources.join(','));
+      
+      const response = await fetch(`/api/news?${params.toString()}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setNews(data.articles);
+      } else {
+        console.error('Failed to fetch news:', data.error);
+        setNews(mockNews); // Fallback
+      }
+    } catch (error) {
+      console.error('Error fetching news:', error);
+      setNews(mockNews); // Fallback
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Added type for newsItem
   const handleSubscribe = (newsItem: NewsArticle) => {
@@ -645,7 +739,772 @@ const App: FC = () => {
       setChatMessages(prev => [...prev, { role: 'ai', content: response }]);
     }, 1000);
   };
+  // Fetch full article content from URL
+const fetchFullArticle = async (url: string) => {
+  setLoadingFullArticle(true);
+  setArticleContent(null);
+  
+  try {
+    // Use our own extraction API
+    const response = await fetch(`/api/extract-article?url=${encodeURIComponent(url)}`);
+    const data = await response.json();
+    
+    if (data.success && data.content) {
+      // Successfully extracted content
+      setArticleContent({
+        content: data.content,
+        html: data.html || `<p>${data.content}</p>`,
+        author: data.author
+      });
+    } else {
+      // Couldn't extract, show preview from summary
+      const currentArticle = news.find(n => n.sourceUrl === url);
+      setArticleContent({
+        content: currentArticle?.summary || 'Content not available',
+        html: `
+          <div class="space-y-6">
+            <div class="bg-yellow-500/10 border border-yellow-400/30 rounded-lg p-4">
+              <p class="text-yellow-300 text-sm">
+                ℹ️ Full article extraction is not available for this source.
+              </p>
+            </div>
+            
+            <div class="prose prose-invert">
+              <h3 class="text-lg font-semibold text-white mb-3">Article Preview</h3>
+              <p class="text-gray-300">${currentArticle?.summary || 'No preview available'}</p>
+            </div>
+            
+            <div class="text-center pt-4">
+              <a 
+                href="${url}" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg font-medium transition-all shadow-lg"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                Read Full Article on ${currentArticle?.source || 'Original Site'}
+              </a>
+            </div>
+          </div>
+        `,
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching article:', error);
+    // On error, show preview + link
+    const currentArticle = news.find(n => n.sourceUrl === url);
+    setArticleContent({
+      content: currentArticle?.summary || 'Unable to load content',
+      html: `
+        <div class="space-y-6">
+          <div class="bg-red-500/10 border border-red-400/30 rounded-lg p-4">
+            <p class="text-red-300 text-sm">
+              ⚠️ Unable to load full article content. Network error or source protection.
+            </p>
+          </div>
+          
+          ${currentArticle?.summary ? `
+            <div class="prose prose-invert">
+              <h3 class="text-lg font-semibold text-white mb-3">Article Preview</h3>
+              <p class="text-gray-300">${currentArticle.summary}</p>
+            </div>
+          ` : ''}
+          
+          <div class="text-center pt-4">
+            <a 
+              href="${url}" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg font-medium transition-all shadow-lg"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              Visit Original Source
+            </a>
+          </div>
+        </div>
+      `,
+    });
+  } finally {
+    setLoadingFullArticle(false);
+  }
+};
+const generateQueryString = () => {
+  const queries = [];
+  
+  // ALWAYS add time/date first
+  if (filters.useCustomDate) {
+    if (filters.dateFrom) queries.push(`dateFrom = '${filters.dateFrom}'`);
+    if (filters.dateTo) queries.push(`dateTo = '${filters.dateTo}'`);
+  } else {
+    // Always include timeRange
+    queries.push(`timeRange = '${filters.timeRange}'`);
+  }
+  
+  // ALWAYS add keywords if present
+  if (filters.customTopic?.trim()) {
+    queries.push(`keywords contains "${filters.customTopic.trim()}"`);
+  }
+  
+  // Countries
+  if (filters.countries.length > 0) {
+    const countryNames = filters.countries.map(id => {
+      const country = Object.values(allCountries).flat().find(c => c.id === id);
+      return country?.name || id;
+    });
+    queries.push(`country in ('${countryNames.join("', '")}')`);
+  }
+  
+  // Regions
+  if (filters.regions.length > 0) {
+    const regionNames = filters.regions.map(id => {
+      const region = regions.find(r => r.id === id);
+      return region?.name || id;
+    });
+    queries.push(`region in ('${regionNames.join("', '")}')`);
+  }
+  
+  // Categories
+  if (filters.categories.length > 0) {
+    const categoryNames = filters.categories.map(id => {
+      const category = categories.find(c => c.id === id);
+      return category?.name || id;
+    });
+    queries.push(`category in ('${categoryNames.join("', '")}')`);
+  }
+  
+  // Languages
+  if (filters.languages.length > 0 && !(filters.languages.length === 1 && filters.languages[0] === 'en')) {
+  queries.push(`language in ('${filters.languages.join("', '")}')`);
+}
+  
+  // Sources
+  if (filters.sources.length > 0) {
+    queries.push(`source in ('${filters.sources.join("', '")}')`);
+  }
+  
+  return queries.join(' AND ');
+};
 
+const validateQuery = (query: string): { valid: boolean; error?: string; suggestion?: { wrong: string; correct: string } } => {
+  if (!query.trim()) {
+    return { valid: false, error: 'Query cannot be empty' };
+  }
+  
+  const validFields = ['timeRange', 'dateFrom', 'dateTo', 'country', 'region', 'category', 'language', 'source', 'keywords'];
+  const validLanguages = ['en', 'az', 'ru', 'tr', 'es', 'fr', 'de', 'ar', 'zh', 'ja'];
+  const validTimeRanges = ['24h', '7d', '30d', '90d', '1y'];
+  
+  // Split by AND
+  const parts = query.split(' AND ').map(p => p.trim());
+  
+  for (const part of parts) {
+    // Check for 'field in (...)'
+    const inMatch = part.match(/^(\w+)\s+in\s+\(([^)]+)\)$/);
+    if (inMatch) {
+      const field = inMatch[1];
+      const valuesString = inMatch[2];
+      
+      if (!validFields.includes(field)) {
+  // Check for typos
+  const typoSuggestions: { [key: string]: string } = {
+    'lang': 'language',
+    'langs': 'language',
+    'cat': 'category',
+    'cats': 'category',
+    'ctry': 'country',
+    'countries': 'country',
+    'reg': 'region',
+    'time': 'timeRange',
+    'date': 'dateFrom or dateTo',
+    'key': 'keywords',
+    'keyword': 'keywords'
+  };
+  
+  const suggestion = typoSuggestions[field.toLowerCase()];
+  if (suggestion) {
+    return { 
+      valid: false, 
+      error: `'${field}' → Did you mean '${suggestion}'?`,
+      suggestion: { wrong: field, correct: suggestion }
+    };
+  }
+  
+  return { valid: false, error: `Invalid field: '${field}'. Valid fields: ${validFields.join(', ')}` };
+}
+      
+      
+      // Check if values are properly quoted - be flexible with spacing
+  const hasQuotes = valuesString.includes("'");
+  if (!hasQuotes) {
+    return { 
+  valid: false, 
+  error: `❌ Syntax Error in '${field} in (...)':\n\n⚠️ Problem: Values must be quoted\n\n✅ Correct format: ${field} in ('value1', 'value2')\n\n💡 Tip: Put quotes around each value` 
+};
+}
+      
+      // Special validation for languages
+      // Special validation for languages
+if (field === 'language') {
+  const langs = valuesString.match(/'([^']+)'/g)?.map(l => l.replace(/'/g, ''));
+  const invalidLangs = langs?.filter(l => !validLanguages.includes(l));
+  
+  if (invalidLangs && invalidLangs.length > 0) {
+    // Check for typos/partial matches
+    const languageMap: { [key: string]: string } = {
+      'azer': 'az',
+      'azerbaijan': 'az',
+      'azeri': 'az',
+      'english': 'en',
+      'russian': 'ru',
+      'russia': 'ru',
+      'turkish': 'tr',
+      'turkey': 'tr',
+      'spanish': 'es',
+      'french': 'fr',
+      'france': 'fr',
+      'german': 'de',
+      'germany': 'de',
+      'arabic': 'ar',
+      'chinese': 'zh',
+      'china': 'zh',
+      'japanese': 'ja',
+      'japan': 'ja',
+      'korean': 'ko',
+      'korea': 'ko'
+    };
+    
+    const suggestions = invalidLangs.map(invalid => {
+      const suggestion = languageMap[invalid.toLowerCase()] || 
+                        validLanguages.find(v => v.startsWith(invalid.toLowerCase()));
+      return suggestion ? `'${invalid}' → Did you mean '${suggestion}'?` : `'${invalid}' (invalid)`;
+    });
+    
+    return { 
+      valid: false, 
+      error: `❌ Invalid Language Code(s):\n\n${suggestions.join('\n')}\n\n💡 Use 2-letter codes: en, az, ru, tr, fr, es, de, ar, zh, ja, ko`,
+      suggestion: { 
+        wrong: invalidLangs[0], 
+        correct: languageMap[invalidLangs[0]?.toLowerCase()] 
+        }
+     };
+  }
+}
+      if (field === 'category') {
+        const cats = valuesString.match(/'([^']+)'/g)?.map(c => c.replace(/'/g, ''));
+        const validCategories = ['Economy & Finance', 'Technology & AI', 'Energy & Commodities', 
+          'Art & Culture', 'Social & Trends', 'Funding & Grants', 'Automotive', 'History & Heritage', 
+          'Startups & Business', 'Health & Medicine', 'Science & Research', 'Sports', 
+          'Military & Defense', 'Environment', 'Politics & Strategy', 'Custom Category'];
+        
+        const invalidCats = cats?.filter(c => !validCategories.includes(c) && c !== 'art');
+        if (invalidCats && invalidCats.length > 0) {
+          const suggestions = invalidCats.map(invalid => {
+            // Find close match
+            const suggestion = validCategories.find(valid => 
+              valid.toLowerCase().includes(invalid.toLowerCase())
+            );
+            return suggestion ? `'${invalid}' → Did you mean '${suggestion}'?` : `'${invalid}'`;
+          });
+          
+          return { 
+            valid: false, 
+            error: `Invalid category:\n${suggestions.join('\n')}\n\nUse 'Custom Category' for custom searches.` 
+          };
+        }
+        
+        // Special case: 'art' → suggest 'Art & Culture'
+        if (cats?.includes('art')) {
+          return {
+            valid: false,
+            error: `'art' → Did you mean 'Art & Culture'?`
+          };
+        }
+      }
+      // Special validation for categories
+      if (field === 'category') {
+        const cats = valuesString.match(/'([^']+)'/g)?.map(c => c.replace(/'/g, ''));
+        const validCategories = categories.map(c => c.name);
+        const invalidCats = cats?.filter(c => !validCategories.includes(c));
+        
+        if (invalidCats && invalidCats.length > 0) {
+          // Try to find suggestions
+          const suggestions = invalidCats.map(invalid => {
+            const suggestion = validCategories.find(valid => 
+              valid.toLowerCase().includes(invalid.toLowerCase()) || 
+              invalid.toLowerCase().includes(valid.toLowerCase())
+            );
+            return suggestion ? `'${invalid}' → Did you mean '${suggestion}'?` : `'${invalid}' (not found)`;
+          });
+          
+          return { 
+            valid: false, 
+            error: `Invalid category:\n${suggestions.join('\n')}\n\nValid categories: ${validCategories.join(', ')}` 
+          };
+        }
+      }
+      continue;
+    }
+    
+    // Check for 'field contains "..."'
+    const containsMatch = part.match(/^(\w+)\s+contains\s+"([^"]+)"$/);
+    if (containsMatch) {
+      const field = containsMatch[1];
+      if (!validFields.includes(field)) {
+        return { valid: false, error: `Invalid field: '${field}'. Valid fields: ${validFields.join(', ')}` };
+      }
+      if (field !== 'keywords') {
+        return { valid: false, error: `Only 'keywords' field supports 'contains' operator. Use: keywords contains "text"` };
+      }
+      continue;
+    }
+    
+    // Check for 'field = value'
+    const equalsMatch = part.match(/^(\w+)\s+=\s+'([^']+)'$/);
+    if (equalsMatch) {
+      const field = equalsMatch[1];
+      const value = equalsMatch[2];
+      
+      if (!validFields.includes(field)) {
+        // Check for common typos
+        if (field === 'date') {
+          return { valid: false, error: `Invalid field: 'date'. Did you mean 'dateFrom' or 'dateTo'?` };
+        }
+        return { valid: false, error: `Invalid field: '${field}'. Valid fields: ${validFields.join(', ')}` };
+      }
+      
+      // Validate timeRange values
+      if (field === 'timeRange') {
+  if (!value.match(/^\d+(h|d|m|y)$/)) {
+    return { valid: false, error: `Invalid timeRange format: '${value}'. Use format: number + h/d/m/y (e.g., '20d', '42h', '160d', '6m')` };
+  }
+}
+      
+      // Validate date format
+      if ((field === 'dateFrom' || field === 'dateTo') && !value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return { valid: false, error: `Invalid date format for '${field}'. Use: ${field} = 'YYYY-MM-DD'` };
+      }
+      
+      continue;
+    }
+    
+    // SMART DETECTION: Check if query is incomplete (not invalid)
+    
+    // 1. Incomplete 'language in' without values
+    if (part.match(/^language\s+in\s*$/)) {
+      return { 
+        valid: false, 
+        error: `⏸️ Incomplete Query:\n\n'language in' needs values in parentheses.\n\n✅ Complete it like:\nlanguage in ('az', 'en', 'ru')\n\n💡 Available languages: en, az, ru, tr, fr, es, de, ar, zh, ja, ko` 
+      };
+    }
+    
+    // 2. Incomplete 'field in' without values
+    if (part.match(/^(\w+)\s+in\s*$/)) {
+      const field = part.match(/^(\w+)/)?.[1];
+      const examples = {
+        'country': "country in ('Azerbaijan', 'USA', 'UK')",
+        'category': "category in ('Technology & AI', 'Economy & Finance')",
+        'region': "region in ('Europe', 'Asia')",
+        'source': "source in ('BBC', 'CNN')"
+      };
+      const example = examples[field as keyof typeof examples] || `${field} in ('value1', 'value2')`;
+      
+      return { 
+        valid: false, 
+        error: `⏸️ Incomplete Query:\n\n'${field} in' needs values in parentheses.\n\n✅ Complete it like:\n${example}` 
+      };
+    }
+    
+    // 3. Incomplete 'keywords contains' without text
+    if (part.match(/^keywords\s+contains\s*$/)) {
+      return { 
+        valid: false, 
+        error: `⏸️ Incomplete Query:\n\n'keywords contains' needs text in quotes.\n\n✅ Complete it like:\nkeywords contains "AI technology"\n\n💡 Tip: Use double quotes for the search text` 
+      };
+    }
+    
+    // 4. Incomplete 'field =' without value
+    if (part.match(/^(\w+)\s+=\s*$/)) {
+      const field = part.match(/^(\w+)/)?.[1];
+      const examples = {
+        'timeRange': "timeRange = '7d'",
+        'dateFrom': "dateFrom = '2025-01-01'",
+        'dateTo': "dateTo = '2025-12-31'"
+      };
+      const example = examples[field as keyof typeof examples] || `${field} = 'value'`;
+      
+      return { 
+        valid: false, 
+        error: `⏸️ Incomplete Query:\n\n'${field} =' needs a value in quotes.\n\n✅ Complete it like:\n${example}` 
+      };
+    }
+    
+    // 5. Generic incomplete detection (ends with operator)
+    if (part.match(/(in|contains|=)\s*$/)) {
+      return { 
+        valid: false, 
+        error: `⏸️ Incomplete Query:\n\nYour query ends with an operator but needs a value.\n\n💡 Examples:\n• language in ('az', 'en')\n• keywords contains "text"\n• timeRange = '7d'` 
+      };
+    }
+    
+    // If truly invalid (not incomplete), show the original error
+    return { valid: false, error: `❌ Invalid Syntax:\n\n'${part}'\n\n💡 Check syntax examples below for correct format.` };
+  }
+  
+  return { valid: true };
+};
+const getCaretCoordinates = (element: HTMLTextAreaElement, position: number) => {
+  const div = document.createElement('div');
+  const style = getComputedStyle(element);
+  
+  [...style].forEach(prop => {
+    div.style.setProperty(prop, style.getPropertyValue(prop));
+  });
+  
+  div.style.position = 'absolute';
+  div.style.visibility = 'hidden';
+  div.style.whiteSpace = 'pre-wrap';
+  div.style.wordWrap = 'break-word';
+  
+  div.textContent = element.value.substring(0, position);
+  
+  const span = document.createElement('span');
+  span.textContent = element.value.substring(position) || '.';
+  div.appendChild(span);
+  
+  document.body.appendChild(div);
+  
+  const coordinates = {
+    top: span.offsetTop,
+    left: span.offsetLeft
+  };
+  
+  document.body.removeChild(div);
+  
+  return coordinates;
+};
+const getQuerySuggestion = (query: string): string | null => {
+  if (!query.trim()) return null;
+  
+  const lastPart = query.split(' AND ').pop()?.trim() || '';
+  
+  // Field name suggestions
+  const fieldTypos: { [key: string]: string } = {
+    'lang': 'language',
+    'langs': 'language',
+    'cat': 'category',
+    'cats': 'category',
+    'ctry': 'country',
+    'reg': 'region',
+    'time': 'timeRange',
+    'key': 'keywords'
+  };
+  
+  for (const [typo, correct] of Object.entries(fieldTypos)) {
+    if (lastPart.startsWith(typo + ' ')) {
+      return `💡 Tab: '${typo}' → '${correct}'`;
+    }
+  }
+  
+  // Language code suggestions
+  const langMatch = lastPart.match(/language in \('([^']*)/);
+  if (langMatch) {
+    const partial = langMatch[1].toLowerCase();
+    const langMap: { [key: string]: string } = {
+      'azer': 'az',
+      'azerbaijan': 'az',
+      'eng': 'en',
+      'english': 'en',
+      'rus': 'ru',
+      'russian': 'ru',
+      'tur': 'tr',
+      'turkish': 'tr'
+    };
+    
+    const suggestion = langMap[partial] || 
+                      ['en', 'az', 'ru', 'tr', 'es', 'fr', 'de', 'ar', 'zh', 'ja'].find(l => l.startsWith(partial));
+    
+    if (suggestion) {
+      return `💡 Tab: '${suggestion}' (${partial.length > 0 ? partial : 'language code'})`;
+    }
+  }
+  
+  // Category suggestions
+  if (lastPart === "category in ('art')") {
+    return "💡 Tab: 'art' → 'Art & Culture'";
+  }
+  
+  const catMatch = lastPart.match(/category in \('([^']*)/);
+  if (catMatch) {
+    const partial = catMatch[1].toLowerCase();
+    const validCategories = ['Art & Culture', 'Economy & Finance', 'Technology & AI', 'Energy & Commodities', 
+      'Social & Trends', 'Funding & Grants', 'Automotive', 'History & Heritage', 
+      'Startups & Business', 'Health & Medicine', 'Science & Research', 'Sports', 
+      'Military & Defense', 'Environment', 'Politics & Strategy'];
+    
+    const match = validCategories.find(c => c.toLowerCase().startsWith(partial) || c.toLowerCase().includes(partial));
+    if (match) return `💡 Tab: '${match}'`;
+  }
+  return null;
+};
+const getAutocomplete = (query: string, cursorPos: number): Array<{text: string; type: string; description: string}> => {
+  const beforeCursor = query.substring(0, cursorPos);
+  const lastWord = beforeCursor.split(/[\s(),'"]/).pop()?.toLowerCase() || '';
+  
+  if (!lastWord) return [];
+  
+  const suggestions: Array<{text: string; type: string; description: string}> = [];
+  
+  // Field suggestions
+  const fields = [
+    { name: 'timeRange', desc: 'Time period (e.g., 7d, 30d, 24h)' },
+    { name: 'dateFrom', desc: 'Start date (YYYY-MM-DD)' },
+    { name: 'dateTo', desc: 'End date (YYYY-MM-DD)' },
+    { name: 'country', desc: 'Country names' },
+    { name: 'region', desc: 'Geographic regions' },
+    { name: 'category', desc: 'News categories' },
+    { name: 'language', desc: 'Language codes (en, az, ru, etc.)' },
+    { name: 'source', desc: 'News sources' },
+    { name: 'keywords', desc: 'Search terms' }
+  ];
+  
+  fields.forEach(field => {
+    if (field.name.toLowerCase().startsWith(lastWord)) {
+      suggestions.push({ text: field.name, type: 'field', description: field.desc });
+    }
+  });
+  
+  // Language code suggestions
+  if (beforeCursor.includes('language in (')) {
+    const langs = [
+      { code: 'en', name: 'English' },
+      { code: 'az', name: 'Azerbaijani' },
+      { code: 'ru', name: 'Russian' },
+      { code: 'tr', name: 'Turkish' },
+      { code: 'es', name: 'Spanish' },
+      { code: 'fr', name: 'French' },
+      { code: 'de', name: 'German' },
+      { code: 'ar', name: 'Arabic' },
+      { code: 'zh', name: 'Chinese' },
+      { code: 'ja', name: 'Japanese' }
+    ];
+    
+    langs.forEach(lang => {
+      if (lang.code.startsWith(lastWord) || lang.name.toLowerCase().startsWith(lastWord)) {
+        suggestions.push({ text: `'${lang.code}'`, type: 'value', description: lang.name });
+      }
+    });
+  }
+  
+  // Category suggestions
+  if (beforeCursor.includes('category in (')) {
+    const cats = ['Economy & Finance', 'Technology & AI', 'Art & Culture', 'Sports', 'Politics & Strategy'];
+    cats.forEach(cat => {
+      if (cat.toLowerCase().includes(lastWord)) {
+        suggestions.push({ text: `'${cat}'`, type: 'value', description: 'Category' });
+      }
+    });
+  }
+  
+  // Operator suggestions
+  if (lastWord.length > 0 && !beforeCursor.endsWith('(')) {
+    const operators = [
+      { text: 'AND', desc: 'Combine conditions' },
+      { text: 'in', desc: 'Match any value in list' },
+      { text: 'contains', desc: 'Text search' }
+    ];
+    operators.forEach(op => {
+      if (op.text.toLowerCase().startsWith(lastWord)) {
+        suggestions.push({ text: op.text, type: 'operator', description: op.desc });
+      }
+    });
+  }
+  
+  return suggestions.slice(0, 5); // Limit to 5 suggestions
+};
+
+const highlightQueryErrors = (query: string) => {
+  // Simplified - only show obvious syntax errors, not semantic validation
+  const errors: Array<{start: number; end: number; message: string}> = [];
+  
+  // Only check for completely missing quotes
+  if (query.includes('in (') && !query.match(/in \('[^']*'\)/)) {
+    errors.push({ start: 0, end: 0, message: 'Values in () must be quoted' });
+  }
+  
+  setQueryErrors(errors);
+};
+
+  const applyQueryString = (query: string) => {
+  // Validate first
+  const validation = validateQuery(query);
+  if (!validation.valid) {
+    alert(`❌ Query Error:\n\n${validation.error}`);
+    return;
+  }
+  
+  try {
+    const newFilters = { ...filters };
+
+
+      const dateFromMatch = query.match(/dateFrom = '([^']+)'/);
+    if (dateFromMatch) {
+      newFilters.dateFrom = dateFromMatch[1];
+      newFilters.useCustomDate = true;
+    }
+
+      const dateToMatch = query.match(/dateTo = '([^']+)'/);
+    if (dateToMatch) {
+      newFilters.dateTo = dateToMatch[1];
+      newFilters.useCustomDate = true;
+    }
+
+      const timeRangeMatch = query.match(/timeRange = '([^']+)'/);
+    if (timeRangeMatch) {
+      newFilters.timeRange = timeRangeMatch[1];
+      newFilters.useCustomDate = false;
+    }
+
+      const countryMatch = query.match(/country in \('([^']+(?:', '[^']+)*)'\)/);
+      if (countryMatch) {
+        const countryNames = countryMatch[1].split("', '");
+        newFilters.countries = Object.values(allCountries).flat()
+          .filter(c => countryNames.includes(c.name))
+          .map(c => c.id);
+      }
+      
+      const regionMatch = query.match(/region in \('([^']+(?:', '[^']+)*)'\)/);
+      if (regionMatch) {
+        const regionNames = regionMatch[1].split("', '");
+        newFilters.regions = regions
+          .filter(r => regionNames.includes(r.name))
+          .map(r => r.id);
+      }
+      
+      const categoryMatch = query.match(/category in \('([^']+(?:', '[^']+)*)'\)/);
+      if (categoryMatch) {
+        const categoryNames = categoryMatch[1].split("', '");
+        newFilters.categories = categories
+          .filter(c => categoryNames.includes(c.name))
+          .map(c => c.id);
+      }
+
+      const languageMatch = query.match(/language in \('([^']+(?:', '[^']+)*)'\)/);
+    if (languageMatch) {
+      newFilters.languages = languageMatch[1].split("', '");
+    }
+    
+      const sourceMatch = query.match(/source in \('([^']+(?:', '[^']+)*)'\)/);
+    if (sourceMatch) {
+      newFilters.sources = sourceMatch[1].split("', '");
+    }
+      
+      const keywordsMatch = query.match(/keywords contains "([^"]+)"/);
+      if (keywordsMatch) {
+        newFilters.customTopic = keywordsMatch[1];
+      }
+      
+      setFilters(newFilters);
+      setShowQueryModal(false);
+      // Trigger search immediately
+      setTimeout(() => {
+        setLoading(true);
+        setTimeout(() => {
+         setNews(getFilteredNews());
+          setLoading(false);
+       }, 500);
+    }, 100);
+    alert('✅ Query applied successfully!\n\nFilters updated and search executed.');
+    } catch (error) {
+      alert('Invalid query format. Please check your syntax.');
+    }
+  };
+
+  const copyFiltersToClipboard = () => {
+    const query = generateQueryString();
+    navigator.clipboard.writeText(query);
+    setQueryCopied(true);
+    setTimeout(() => setQueryCopied(false), 2000);
+  };
+  const handleSearch = () => {
+    setLoading(true);
+    setTimeout(() => {
+      const filteredResults = getFilteredNews();
+      setNews(filteredResults);
+      setLoading(false);
+    }, 800);
+  };
+
+  // Filter news based on selected filters
+  const getFilteredNews = () => {
+    let filtered = [...mockNews];
+
+    // Filter by regions
+    if (filters.regions.length > 0) {
+      filtered = filtered.filter(article => 
+        filters.regions.includes(article.region)
+      );
+    }
+
+    // Filter by countries
+    if (filters.countries.length > 0) {
+      filtered = filtered.filter(article => 
+        article.countries.some(country => filters.countries.includes(country))
+      );
+    }
+
+    // Filter by categories
+    if (filters.categories.length > 0) {
+      filtered = filtered.filter(article => 
+        filters.categories.includes(article.category)
+      );
+    }
+
+    // Filter by custom topic/keywords
+    if (filters.customTopic.trim()) {
+      const keyword = filters.customTopic.toLowerCase();
+      filtered = filtered.filter(article => 
+        article.title.toLowerCase().includes(keyword) ||
+        article.summary.toLowerCase().includes(keyword) ||
+        article.aiInsight.toLowerCase().includes(keyword)
+      );
+    }
+
+    /* Filter by sources*/
+    if (filters.sources.length > 0) {
+      filtered = filtered.filter(article => 
+        filters.sources.includes(article.source)
+      );
+    }
+    // Filter by languages
+    if (filters.languages.length > 0) {
+      filtered = filtered.filter(article => 
+        article.language && filters.languages.includes(article.language)
+      );
+    }
+
+    // Filter by date range
+    if (filters.useCustomDate) {
+      if (filters.dateFrom) {
+        const fromDate = new Date(filters.dateFrom);
+        filtered = filtered.filter(article => 
+          new Date(article.date) >= fromDate
+    );
+  }
+  if (filters.dateTo) {
+    const toDate = new Date(filters.dateTo);
+    filtered = filtered.filter(article => 
+      new Date(article.date) <= toDate
+    );
+  }
+}
+
+    return filtered;
+  };
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
       {/* Header */}
@@ -677,14 +1536,44 @@ const App: FC = () => {
                 <BarChart3 className="w-4 h-4" />
                 {activeView === 'news' ? 'Analytics' : 'News Feed'}
               </button>
+              
+            
+              <LanguageSelector />
             </div>
           </div>
         </div>
       </header>
 
+
       {/* Advanced Filters Panel */}
+      {/* Show Filters Button - Only visible when hidden */}
+      {!showFiltersPanel && (
+        <div className="bg-black/20 backdrop-blur-xl border-b border-white/10 sticky top-[73px] z-40">
+          <div className="max-w-7xl mx-auto px-6 py-4 relative">
+            <button
+              onClick={() => setShowFiltersPanel(true)}
+              className="absolute top-2 right-4 p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-all"
+              title="Show Filters"
+            >
+              <ChevronDown className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Advanced Filters Panel */}
+      {showFiltersPanel && (
       <div className="bg-black/20 backdrop-blur-xl border-b border-white/10 sticky top-[73px] z-40">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-6 py-4 relative">
+          <button
+            onClick={() => setShowFiltersPanel(!showFiltersPanel)}
+            className="absolute top-2 right-4 p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-all"
+            title={showFiltersPanel ? 'Hide Filters' : 'Show Filters'}
+          >
+            {showFiltersPanel ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+          
+          {showFiltersPanel && (
           <div className="grid grid-cols-1 gap-4">
             {/* First Row: Time, Custom Topic, Search */}
             <div className="grid grid-cols-12 gap-3">
@@ -696,7 +1585,7 @@ const App: FC = () => {
                 </label>
                 <select
                   value={filters.timeRange}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleTimeRangeChange(e.target.value)} // Added event type
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleTimeRangeChange(e.target.value)} 
                   className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                 >
                   {timeRanges.map(range => (
@@ -714,7 +1603,7 @@ const App: FC = () => {
                   <input
                     type="date"
                     value={filters.dateFrom}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))} // Added event type
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
                     className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   />
                 </div>
@@ -727,7 +1616,7 @@ const App: FC = () => {
                   <input
                     type="date"
                     value={filters.dateTo}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))} // Added event type
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))} 
                     className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   />
                 </div>
@@ -742,7 +1631,7 @@ const App: FC = () => {
                 <input
                   type="text"
                   value={filters.customTopic}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters(prev => ({ ...prev, customTopic: e.target.value }))} // Added event type
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters(prev => ({ ...prev, customTopic: e.target.value }))} 
                   placeholder="e.g., artificial intelligence, climate change, Tesla, oil prices..."
                   className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2.5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 />
@@ -767,21 +1656,32 @@ const App: FC = () => {
 
                 {showFilters.regions && (
                   <div className="absolute top-full mt-2 w-full bg-slate-800 border border-white/20 rounded-lg shadow-2xl z-50 max-h-96 overflow-y-auto">
-                    <div className="p-2 border-b border-white/10 flex gap-2">
-                      <button
-                        onClick={() => selectAllInFilter('regions', regions.map(r => r.id))}
-                        className="flex-1 px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 rounded text-blue-300 text-xs font-medium transition-all"
-                      >
-                        Select All
-                      </button>
-                      <button
-                        onClick={() => clearFilter('regions')}
-                        className="flex-1 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 rounded text-red-300 text-xs font-medium transition-all"
-                      >
-                        Clear
-                      </button>
+                    <div className="p-2 border-b border-white/10 space-y-2 sticky top-0 bg-slate-800 z-10">
+                      {/* Search Box */}
+                      <input
+                        type="text"
+                        value={searchTerms.regions}
+                        onChange={(e) => setSearchTerms(prev => ({ ...prev, regions: e.target.value }))}
+                        placeholder="Search regions..."
+                        className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      {/* Buttons */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => selectAllInFilter('regions', regions.map(r => r.id))}
+                          className="flex-1 px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 rounded text-blue-300 text-xs font-medium transition-all"
+                        >
+                          Select All
+                        </button>
+                        <button
+                          onClick={() => clearFilter('regions')}
+                          className="flex-1 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 rounded text-red-300 text-xs font-medium transition-all"
+                        >
+                          Clear
+                        </button>
+                      </div>
                     </div>
-                    {regions.map(region => (
+                    {regions.filter(region => region.name.toLowerCase().includes(searchTerms.regions.toLowerCase())).map(region => (
                       <button
                         key={region.id}
                         onClick={() => handleMultiSelect('regions', region.id)}
@@ -819,8 +1719,17 @@ const App: FC = () => {
 
                 {showFilters.countries && (
                   <div className="absolute top-full mt-2 w-full bg-slate-800 border border-white/20 rounded-lg shadow-2xl z-50 max-h-96 overflow-y-auto">
-                    <div className="p-2 border-b border-white/10 sticky top-0 bg-slate-800">
-                      <div className="flex gap-2 mb-2">
+                    <div className="p-2 border-b border-white/10 sticky top-0 bg-slate-800 space-y-2">
+                      {/* Search Box */}
+                      <input
+                        type="text"
+                        value={searchTerms.countries}
+                        onChange={(e) => setSearchTerms(prev => ({ ...prev, countries: e.target.value }))}
+                        placeholder="Search countries..."
+                        className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      {/* Buttons */}
+                      <div className="flex gap-2">
                         <button
                           onClick={() => selectAllInFilter('countries', filteredCountries.map(c => c.id))}
                           className="flex-1 px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 rounded text-blue-300 text-xs font-medium transition-all"
@@ -845,7 +1754,8 @@ const App: FC = () => {
                         No countries in selected regions
                       </div>
                     ) : (
-                      filteredCountries.map(country => (
+
+                      filteredCountries.filter(country => country.name.toLowerCase().includes(searchTerms.countries.toLowerCase())).map(country => (
                         <button
                           key={country.id}
                           onClick={() => handleMultiSelect('countries', country.id)}
@@ -882,21 +1792,31 @@ const App: FC = () => {
 
                 {showFilters.categories && (
                   <div className="absolute top-full mt-2 w-full bg-slate-800 border border-white/20 rounded-lg shadow-2xl z-50 max-h-96 overflow-y-auto">
-                    <div className="p-2 border-b border-white/10 flex gap-2">
-                      <button
-                        onClick={() => selectAllInFilter('categories', categories.map(c => c.id))}
-                        className="flex-1 px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 rounded text-blue-300 text-xs font-medium transition-all"
-                      >
-                        Select All
-                      </button>
-                      <button
-                        onClick={() => clearFilter('categories')}
-                        className="flex-1 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 rounded text-red-300 text-xs font-medium transition-all"
-                      >
-                        Clear
-                      </button>
+                    <div className="p-2 border-b border-white/10 space-y-2 sticky top-0 bg-slate-800">
+                      <input
+                        type="text"
+                        value={searchTerms.categories}
+                        onChange={(e) => setSearchTerms(prev => ({ ...prev, categories: e.target.value }))}
+                        placeholder="Search categories..."
+                        className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => selectAllInFilter('categories', categories.map(c => c.id))}
+                          className="flex-1 px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 rounded text-blue-300 text-xs font-medium transition-all"
+                        >
+                          Select All
+                        </button>
+                        <button
+                          onClick={() => clearFilter('categories')}
+                          className="flex-1 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 rounded text-red-300 text-xs font-medium transition-all"
+                        >
+                          Clear
+                        </button>
+                      </div>
                     </div>
-                    {categories.map(category => {
+                   
+                    {categories.filter(category => category.name.toLowerCase().includes(searchTerms.categories.toLowerCase())).map(category => {
                       const Icon = category.icon;
                       return (
                         <button
@@ -917,7 +1837,7 @@ const App: FC = () => {
                   </div>
                 )}
               </div>
-
+             
               {/* Languages Filter */}
               <div className="relative">
                 <label className="block text-sm font-medium text-blue-300 mb-2 flex items-center gap-2">
@@ -934,21 +1854,30 @@ const App: FC = () => {
 
                 {showFilters.languages && (
                   <div className="absolute top-full mt-2 w-full bg-slate-800 border border-white/20 rounded-lg shadow-2xl z-50 max-h-96 overflow-y-auto">
-                    <div className="p-2 border-b border-white/10 flex gap-2">
-                      <button
-                        onClick={() => selectAllInFilter('languages', languages.map(l => l.id))}
-                        className="flex-1 px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 rounded text-blue-300 text-xs font-medium transition-all"
-                      >
-                        Select All
-                      </button>
-                      <button
-                        onClick={() => clearFilter('languages')}
-                        className="flex-1 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 rounded text-red-300 text-xs font-medium transition-all"
-                      >
-                        Clear
-                      </button>
+                    <div className="p-2 border-b border-white/10 space-y-2 sticky top-0 bg-slate-800">
+                      <input
+                        type="text"
+                        value={searchTerms.languages}
+                        onChange={(e) => setSearchTerms(prev => ({ ...prev, languages: e.target.value }))}
+                        placeholder="Search languages..."
+                        className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => selectAllInFilter('languages', languages.map(l => l.id))}
+                          className="flex-1 px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 rounded text-blue-300 text-xs font-medium transition-all"
+                        >
+                          Select All
+                        </button>
+                        <button
+                          onClick={() => clearFilter('languages')}
+                          className="flex-1 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 rounded text-red-300 text-xs font-medium transition-all"
+                        >
+                          Clear
+                        </button>
+                      </div>
                     </div>
-                    {languages.map(lang => (
+                    {languages.filter(lang => lang.name.toLowerCase().includes(searchTerms.languages.toLowerCase())).map(lang => (
                       <button
                         key={lang.id}
                         onClick={() => handleMultiSelect('languages', lang.id)}
@@ -983,29 +1912,38 @@ const App: FC = () => {
 
                 {showFilters.sources && (
                   <div className="absolute top-full mt-2 w-full bg-slate-800 border border-white/20 rounded-lg shadow-2xl z-50 max-h-96 overflow-y-auto">
-                    <div className="p-2 border-b border-white/10 flex gap-2">
-                      <button
-                        onClick={() => {
-                          const allSources = Object.values(newsSources).flat();
-                          selectAllInFilter('sources', allSources);
-                        }}
-                        className="flex-1 px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 rounded text-blue-300 text-xs font-medium transition-all"
-                      >
-                        Select All
-                      </button>
-                      <button
-                        onClick={() => clearFilter('sources')}
-                        className="flex-1 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 rounded text-red-300 text-xs font-medium transition-all"
-                      >
-                        Clear
-                      </button>
+                    <div className="p-2 border-b border-white/10 space-y-2 sticky top-0 bg-slate-800">
+                      <input
+                        type="text"
+                        value={searchTerms.sources}
+                        onChange={(e) => setSearchTerms(prev => ({ ...prev, sources: e.target.value }))}
+                        placeholder="Search sources..."
+                        className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            const allSources = Object.values(newsSources).flat();
+                            selectAllInFilter('sources', allSources);
+                          }}
+                          className="flex-1 px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 rounded text-blue-300 text-xs font-medium transition-all"
+                        >
+                          Select All
+                        </button>
+                        <button
+                          onClick={() => clearFilter('sources')}
+                          className="flex-1 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 rounded text-red-300 text-xs font-medium transition-all"
+                        >
+                          Clear
+                        </button>
+                      </div>
                     </div>
                     {Object.entries(newsSources).map(([category, sources]) => (
                       <div key={category} className="border-b border-white/5">
                         <div className="px-4 py-2 bg-white/5">
                           <span className="text-blue-300 text-xs font-semibold uppercase">{category}</span>
                         </div>
-                        {sources.map(source => (
+                        {sources.filter(source => source.toLowerCase().includes(searchTerms.sources.toLowerCase())).map(source => (
                           <button
                             key={source}
                             onClick={() => handleMultiSelect('sources', source)}
@@ -1024,52 +1962,128 @@ const App: FC = () => {
                   </div>
                 )}
               </div>
-            </div>
+              </div>
+            {/* Custom Category Input - Full Width */}
+            {filters.categories.includes('custom') && (
+              <div className="mb-6">
+                <label className="flex items-center gap-2 text-purple-300 text-sm font-medium mb-3">
+                  <Sparkles className="w-4 h-4" />
+                  Custom Category
+                </label>
+                <input
+                  type="text"
+                  value={filters.customCategory}
+                  onChange={(e) => setFilters({ ...filters, customCategory: e.target.value })}
+                  placeholder="e.g., banking, football, renewable energy... (helps us improve categories)"
+                  className="w-full bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-400/30 rounded-xl px-6 py-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-400/50 transition-all text-base shadow-lg backdrop-blur-sm"
+                />
+              </div>
+            )}
+           {/* Active Filters Display */}
+{(filters.regions.length > 0 || filters.countries.length > 0 || filters.categories.length > 0) && (
+  <div className="flex flex-wrap gap-2 items-center pt-2 border-t border-white/10">
+    <span className="text-xs text-gray-400">Active filters:</span>
+    {filters.regions.length > 0 && (
+      <span className="px-3 py-1 bg-purple-500/20 border border-purple-400/30 rounded-full text-xs text-purple-300 flex items-center gap-2">
+        {filters.regions.length} region{filters.regions.length !== 1 ? 's' : ''}
+        <X className="w-3 h-3 cursor-pointer hover:text-white" onClick={() => clearFilter('regions')} />
+      </span>
+    )}
+    {filters.countries.length > 0 && (
+      <span className="px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full text-xs text-blue-300 flex items-center gap-2">
+        {filters.countries.length} countr{filters.countries.length !== 1 ? 'ies' : 'y'}
+        <X className="w-3 h-3 cursor-pointer hover:text-white" onClick={() => clearFilter('countries')} />
+      </span>
+    )}
+    {filters.categories.length > 0 && (
+      <span className="px-3 py-1 bg-green-500/20 border border-green-400/30 rounded-full text-xs text-green-300 flex items-center gap-2">
+        {filters.categories.length} categor{filters.categories.length !== 1 ? 'ies' : 'y'}
+        <X className="w-3 h-3 cursor-pointer hover:text-white" onClick={() => clearFilter('categories')} />
+      </span>
+    )}
 
-            {/* Active Filters Display */}
-            {(filters.regions.length > 0 || filters.countries.length > 0 || filters.categories.length > 0) && (
-              <div className="flex flex-wrap gap-2 items-center pt-2 border-t border-white/10">
-                <span className="text-xs text-gray-400">Active filters:</span>
-                {filters.regions.length > 0 && (
-                  <span className="px-3 py-1 bg-purple-500/20 border border-purple-400/30 rounded-full text-xs text-purple-300 flex items-center gap-2">
-                    {filters.regions.length} region{filters.regions.length !== 1 ? 's' : ''}
-                    <X className="w-3 h-3 cursor-pointer hover:text-white" onClick={() => clearFilter('regions')} />
-                  </span>
-                )}
-                {filters.countries.length > 0 && (
-                  <span className="px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full text-xs text-blue-300 flex items-center gap-2">
-                    {filters.countries.length} countr{filters.countries.length !== 1 ? 'ies' : 'y'}
-                    <X className="w-3 h-3 cursor-pointer hover:text-white" onClick={() => clearFilter('countries')} />
-                  </span>
-                )}
-                {filters.categories.length > 0 && (
-                  <span className="px-3 py-1 bg-green-500/20 border border-green-400/30 rounded-full text-xs text-green-300 flex items-center gap-2">
-                    {filters.categories.length} categor{filters.categories.length !== 1 ? 'ies' : 'y'}
-                    <X className="w-3 h-3 cursor-pointer hover:text-white" onClick={() => clearFilter('categories')} />
-                  </span>
-                )}
+    {/* Actions on the right */}
+                <div className="ml-auto flex items-center gap-2">
+                  {/* Copy Button - minimalistic */}
+                  <button
+                    onClick={copyFiltersToClipboard}
+                    className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-all"
+                    title="Copy filter query"
+                  >
+                    {queryCopied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                  
+                  {/* Query Editor Button - Database/Query icon */}
+                  <button
+                    onClick={() => {
+                      setCustomQuery(generateQueryString());
+                      const currentQuery = generateQueryString();
+                      setCustomQuery(currentQuery);
+                      setInitialCustomQuery(currentQuery);
+                      setShowQueryModal(true);
+                    }}
+                    className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-all"
+                    title="Advanced query editor"
+                  >
+                    <FileCode className="w-4 h-4" />
+                  </button>
+                  
+                  {/* Clear All Filters Button */}
+                  <button
+                    onClick={() => setFilters({
+                      timeRange: '7d',
+                      regions: [],
+                      countries: [],
+                      categories: [],
+                      languages: ['en'],
+                      sources: [],
+                      customTopic: '',
+                      customCategory: '',
+                      dateFrom: '',
+                      dateTo: '',
+                      useCustomDate: false
+                    })}
+                    className="px-4 py-1 bg-red-500/20 hover:bg-red-500/30 border border-red-400/30 rounded-full text-xs text-red-300 transition-all"
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
+                </div>
+)}
+{/* Query Button - Always Visible when no filters */}
+            {!(filters.regions.length > 0 || filters.countries.length > 0 || filters.categories.length > 0) && (
+              <div className="flex justify-end pt-2">
                 <button
-                  onClick={() => setFilters({
-                    timeRange: '7d',
-                    regions: [],
-                    countries: [],
-                    categories: [],
-                    languages: ['en'],
-                    sources: [],
-                    customTopic: '',
-                    dateFrom: '',
-                    dateTo: '',
-                    useCustomDate: false
-                  })}
-                  className="ml-auto px-4 py-1 bg-red-500/20 hover:bg-red-500/30 border border-red-400/30 rounded-full text-xs text-red-300 transition-all"
+                  onClick={() => {
+                    setCustomQuery(generateQueryString());
+                    setShowQueryModal(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-all border border-white/10"
+                  title="Write custom query"
                 >
-                  Clear All Filters
+                  <Search className="w-4 h-4" />
+                  <span className="text-sm">Advanced Query</span>
                 </button>
               </div>
             )}
+            {/* Action Buttons */}
+            <div className="flex items-center gap-4 mt-6 pt-6 border-t border-white/10">
+              <button onClick={handleSearch} className="flex-1 flex items-center justify-center gap-2 px-8 py-3.5 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 rounded-xl text-white font-semibold transition-all shadow-lg">
+                <Search className="w-5 h-5" />
+                Search Intelligence
+              </button>
+              <button className="flex items-center gap-2 px-6 py-3.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/30 rounded-xl text-emerald-300 font-semibold transition-all">
+                <Bell className="w-5 h-5" />
+                Subscribe
+              </button>
+            </div>
+            
           </div>
-        </div>
-      </div>
+          )}
+        </div> 
+      </div> 
+      )}
+    
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
@@ -1089,6 +2103,14 @@ const App: FC = () => {
                 </div>
               </div>
 
+              {!loading && news.length === 0 && (
+                <div className="text-center py-20">
+                  <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-white text-lg">No articles match your filters</p>
+                  <p className="text-gray-400 text-sm mt-2">Try adjusting your search criteria</p>
+                </div>
+              )}
+
               {loading ? (
                 <div className="text-center py-20">
                   <div className="inline-block w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -1102,7 +2124,15 @@ const App: FC = () => {
                     className={`bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all ${
                       readArticles.includes(item.id) ? 'opacity-75' : ''
                       }`}
-                    onClick={() => markAsRead(item.id)}
+                    onClick={() => {
+                      markAsRead(item.id);
+                      setSelectedFullNews(item);
+                      setShowFullNewsModal(true);
+                      // Fetch full article content if URL is available
+                      if (item.sourceUrl) {
+                        fetchFullArticle(item.sourceUrl);
+                      }
+                    }}
                   >
                     {/* Header with Actions */}
                     <div className="flex items-start justify-between mb-4">
@@ -1133,7 +2163,7 @@ const App: FC = () => {
                       </div>
                       <div className="flex flex-col gap-2 ml-4">
                         <button
-                          onClick={(e: React.MouseEvent) => { e.stopPropagation(); saveArticle(item.id); }} // Added event type
+                          onClick={(e: React.MouseEvent) => { e.stopPropagation(); saveArticle(item.id); }} 
                           className={`p-2 rounded-lg ${
                             savedArticles.includes(item.id)
                               ? 'bg-purple-500/30 text-purple-300'
@@ -1233,9 +2263,27 @@ const App: FC = () => {
                         <span className="text-gray-400">
                           <span className="font-medium text-blue-300">Source:</span> {item.source}
                         </span>
+                        <span className="text-gray-400 flex items-center gap-1 text-xs">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(item.publishedDate || item.date).toLocaleDateString('en-US', { 
+                            month: 'short', day: 'numeric', year: 'numeric'
+                          })}
+                        </span>
+                       {item.sourceUrl && (
+                        <a
+                          href={item.sourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors text-xs"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            View Original
+                          </a>
+                        )}
                       </div>
                       <button
-                        onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleSubscribe(item); }} // Added event type
+                        onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleSubscribe(item); }} 
                         className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg text-white text-sm font-medium hover:from-blue-600 hover:to-purple-600 transition-all flex items-center gap-2 shadow-lg"
                       >
                         <Bell className="w-4 h-4" />
@@ -1295,8 +2343,8 @@ const App: FC = () => {
                   <input
                     type="text"
                     value={chatInput}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setChatInput(e.target.value)} // Added event type
-                    onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && handleChat()} // Added event type
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setChatInput(e.target.value)}
+                    onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && handleChat()} 
                     placeholder="Ask AI anything..."
                     className="flex-1 bg-white/10 border border-white/20 rounded-lg px-4 py-2.5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                   />
@@ -1328,7 +2376,7 @@ const App: FC = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </div> 
         ) : (
           /* Analytics View */
           <div className="space-y-8">
@@ -1344,19 +2392,22 @@ const App: FC = () => {
                 { label: 'AI Confidence', value: '91.5%', change: '+3%', trend: 'up', icon: Brain, color: 'purple' },
                 { label: 'Critical Events', value: '23', change: '+8%', trend: 'up', icon: AlertCircle, color: 'red' },
                 { label: 'Active Alerts', value: subscriptions.length, change: `+${subscriptions.length}`, trend: 'stable', icon: Bell, color: 'green' }
-              ].map((metric: Metric, idx) => ( // Added Metric type
-                <div key={idx} className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:border-white/20 transition-all">
-                  <div className="flex items-center justify-between mb-4">
-                    <metric.icon className={`w-8 h-8 text-${metric.color}-400`} />
-                    <span className={`text-${metric.trend === 'up' ? 'green' : 'gray'}-400 text-sm font-bold flex items-center gap-1`}>
-                      {metric.trend === 'up' && <TrendingUp className="w-4 h-4" />}
-                      {metric.change}
-                    </span>
+              ].map((metric: Metric, idx) => { 
+                const Icon = metric.icon;
+                return (
+                  <div key={idx} className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:border-white/20 transition-all">
+                    <div className="flex items-center justify-between mb-4">
+                      <Icon className={`w-8 h-8 text-${metric.color}-400`} />
+                      <span className={`text-${metric.trend === 'up' ? 'green' : 'gray'}-400 text-sm font-bold flex items-center gap-1`}>
+                        {metric.trend === 'up' && <TrendingUp className="w-4 h-4" />}
+                        {metric.change}
+                      </span>
+                    </div>
+                    <div className="text-3xl font-bold text-white mb-1">{metric.value}</div>
+                    <div className="text-sm text-gray-400">{metric.label}</div>
                   </div>
-                  <div className="text-3xl font-bold text-white mb-1">{metric.value}</div>
-                  <div className="text-sm text-gray-400">{metric.label}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Charts Grid */}
@@ -1401,7 +2452,7 @@ const App: FC = () => {
                     <XAxis dataKey="region" stroke="#9ca3af" />
                     <YAxis stroke="#9ca3af" />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#1f2937', border: '1x solid #374151', borderRadius: '8px' }}
+                      contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
                       labelStyle={{ color: '#fff' }}
                     />
                     <Legend />
@@ -1424,8 +2475,7 @@ const App: FC = () => {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      // Added types for label props
-                      label={({ name, percent }: { name: string, percent: number }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={(entry: any) => `${entry.name} ${(entry.percent * 100).toFixed(0)}%`}
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
@@ -1474,6 +2524,313 @@ const App: FC = () => {
         )}
       </div>
 
+      {/* Query Editor Modal */}
+      {showQueryModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-8 max-w-2xl w-full border border-white/10 shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-white">Advanced Filter Query</h3>
+              <button
+                  onClick={() => {
+                  // Check if user made changes
+                    const hasChanges = customQuery.trim() !== initialCustomQuery.trim();
+    
+                    if (hasChanges) {
+                      const confirmed = confirm('⚠️ Close Advanced Query?\n\nYour current query will be lost.\n\nClick OK to close, or Cancel to continue editing.');
+                         if (confirmed) {
+                            setCustomQuery('');
+                            setQueryValidationError(null);
+                            setQueryErrors([]);
+                            setShowQueryModal(false);
+                    }
+                    } else {
+                      setShowQueryModal(false);
+                    }
+              }}
+              className="text-gray-400 hover:text-white transition-all"
+          >
+            <X className="w-6 h-6" />
+          </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Filter Query
+                </label>
+                <div className="relative">
+  <div className="space-y-2">
+  <div className="flex items-center justify-between">
+    <label className="text-sm text-gray-400">Filter Query (Jira-like syntax)</label>
+    <div className="flex items-center gap-2">
+      {/* Clickable error icon */}
+      {queryValidationError && (
+        <button
+          onClick={() => alert(`❌ Validation Error:\n\n${queryValidationError}`)}
+          className="text-yellow-400 hover:text-yellow-300 transition-colors"
+          title="Click to see error details"
+        >
+          💡
+        </button>
+      )}
+      {/* Clickable warning icon for real-time errors */}
+      {queryErrors.length > 0 && (
+        <button
+          onClick={() => alert(`⚠️ Syntax Issues:\n\n• ${queryErrors.map(e => e.message).join('\n• ')}`)}
+          className="text-red-400 hover:text-red-300 transition-colors"
+          title="Click to see syntax issues"
+        >
+          ⚠️
+        </button>
+      )}
+      <button
+        onClick={() => setShowQueryHelp(!showQueryHelp)}
+        className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+      >
+        <HelpCircle className="w-3 h-3" />
+        {showQueryHelp ? 'Hide' : 'Show'} Field Reference
+      </button>
+    </div>
+  </div>
+</div>
+  
+  {showQueryHelp && (
+    <div className="mb-3 p-3 bg-blue-500/10 border border-blue-400/30 rounded-lg text-xs space-y-2">
+      <div className="font-semibold text-blue-300">Available Fields:</div>
+      <div className="grid grid-cols-2 gap-2 text-gray-300">
+        <div><code className="text-blue-400">timeRange</code> = '7d' | '30d' | '90d'</div>
+        <div><code className="text-blue-400">dateFrom</code> = '2025-01-01'</div>
+        <div><code className="text-blue-400">country</code> in ('Azerbaijan')</div>
+        <div><code className="text-blue-400">region</code> in ('Europe', 'Asia')</div>
+        <div><code className="text-blue-400">category</code> in ('Technology & AI')</div>
+        <div><code className="text-blue-400">language</code> in ('en', 'az', 'ru')</div>
+        <div><code className="text-blue-400">source</code> in ('BBC', 'CNN')</div>
+        <div><code className="text-blue-400">keywords</code> contains "AI"</div>
+      </div>
+      <div className="text-gray-400 mt-2">💡 Start typing to see autocomplete suggestions</div>
+    </div>
+  )}
+  <textarea
+    value={customQuery}
+    onChange={(e) => {
+      const newValue = e.target.value;
+      setCustomQuery(newValue);
+      highlightQueryErrors(newValue);
+  
+  // Update autocomplete
+      const cursorPos = e.target.selectionStart;
+      const suggestions = getAutocomplete(newValue, cursorPos);
+      setQueryAutocomplete(suggestions);
+}}
+
+    onKeyDown={(e) => {
+      if (e.key === 'Tab' && queryAutocomplete.length > 0) {
+        e.preventDefault();
+        const firstSuggestion = queryAutocomplete[0];
+        const textarea = e.target as HTMLTextAreaElement;
+        const cursorPos = textarea.selectionStart;
+        const beforeCursor = customQuery.substring(0, cursorPos);
+        const afterCursor = customQuery.substring(cursorPos);
+        const lastWordStart = beforeCursor.lastIndexOf(' ') + 1;
+        
+        const newQuery = beforeCursor.substring(0, lastWordStart) + firstSuggestion.text + ' ' + afterCursor;
+        setCustomQuery(newQuery);
+        setQueryAutocomplete([]);
+      }
+    }}
+    placeholder="Example: timeRange = '30d' AND country in ('Azerbaijan') AND keywords contains &quot;AI&quot;"
+    rows={6}
+    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+    spellCheck={false}
+  />
+  
+  {/* Autocomplete Dropdown */}
+  {queryAutocomplete.length > 0 && (
+  <div 
+    className="absolute z-50 bg-slate-800 border border-white/20 rounded-lg shadow-2xl max-w-sm"
+    style={{ top: `${autocompletePosition.top + 20}px`, left: `${autocompletePosition.left}px` }}
+  >
+      {queryAutocomplete.map((suggestion, idx) => (
+        <button
+          key={idx}
+          onClick={() => {
+            const textarea = document.querySelector('textarea');
+            if (textarea) {
+              const cursorPos = textarea.selectionStart;
+              const beforeCursor = customQuery.substring(0, cursorPos);
+              const afterCursor = customQuery.substring(cursorPos);
+              const lastWordStart = beforeCursor.lastIndexOf(' ') + 1;
+              
+              const newQuery = beforeCursor.substring(0, lastWordStart) + suggestion.text + ' ' + afterCursor;
+              setCustomQuery(newQuery);
+              setQueryAutocomplete([]);
+            }
+          }}
+          className="w-full px-3 py-2 hover:bg-white/10 text-left flex items-center gap-3 border-b border-white/5 last:border-0"
+        >
+          <span className={`px-2 py-0.5 rounded text-xs font-mono ${
+            suggestion.type === 'field' ? 'bg-blue-500/20 text-blue-300' :
+            suggestion.type === 'value' ? 'bg-green-500/20 text-green-300' :
+            'bg-purple-500/20 text-purple-300'
+          }`}>
+            {suggestion.type}
+          </span>
+          <div className="flex-1">
+            <div className="text-white font-mono text-sm">{suggestion.text}</div>
+           <div className="text-gray-400 text-xs">{suggestion.description}</div>
+          </div>
+          <kbd className="px-2 py-1 bg-white/10 rounded text-xs text-gray-400">Tab</kbd>
+        </button>
+      ))}
+    </div>
+  )}
+  
+  
+</div>
+                <p className="text-xs text-gray-400 mt-2">
+                  Syntax: <code className="bg-white/10 px-2 py-0.5 rounded">field in ('value1', 'value2')</code> or <code className="bg-white/10 px-2 py-0.5 rounded">field contains "text"</code> or <code className="bg-white/10 px-2 py-0.5 rounded">dateFrom = 'YYYY-MM-DD'</code>
+                </p>
+              </div>
+
+              <div className="space-y-3">
+               <div className="flex gap-3">
+                
+  <button
+    onClick={() => {
+      navigator.clipboard.writeText(customQuery);
+      setQueryCopied(true);
+      setTimeout(() => setQueryCopied(false), 2000);
+    }}
+    className="px-6 py-3 bg-white/10 hover:bg-white/15 border border-white/20 rounded-lg text-white font-medium transition-all flex items-center gap-2"
+  >
+    {queryCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+    {queryCopied ? 'Copied!' : 'Copy Query'}
+  </button>
+  
+  <button
+  onClick={() => {
+  const validation = validateQuery(customQuery);
+  if (validation.valid) {
+    setQueryValidationError(null);
+    alert('✅ Query is valid!\n\nYou can now click "Apply Query" to use these filters.');
+  } else {
+    setQueryValidationError(validation.error || null);
+    const hasSuggestion = validation.error?.includes('→');
+    alert(`❌ Query Validation Failed\n\n${validation.error}${hasSuggestion ? '\n\n💡 A "Fix Query" button will appear below to auto-correct this.' : ''}`);
+  }
+}}
+  className="px-6 py-3 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-400/30 rounded-lg text-yellow-300 font-medium transition-all flex items-center gap-2"
+>
+  <FileCode className="w-4 h-4" />
+  Test Query
+</button>
+  
+  <button
+    onClick={() => applyQueryString(customQuery)}
+    className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 py-3 rounded-lg text-white font-semibold hover:from-blue-600 hover:to-purple-600 transition-all shadow-lg"
+  >
+    Apply Query
+  </button>
+</div>
+
+{/* Fix Button Row - Shows when there's an error */}
+{queryValidationError && (
+  <div className="flex gap-3">
+    <button
+      onClick={() => {
+        let fixed = customQuery;
+        
+        // Fix field name typos
+        const fieldTypos: { [key: string]: string } = {
+          'lang': 'language',
+          'langs': 'language',
+          'cat': 'category',
+          'cats': 'category',
+          'ctry': 'country',
+          'reg': 'region',
+          'time': 'timeRange',
+          'key': 'keywords'
+        };
+        
+        for (const [wrong, correct] of Object.entries(fieldTypos)) {
+          if (queryValidationError.includes(`'${wrong}' → Did you mean '${correct}'`)) {
+            fixed = fixed.replace(new RegExp(`\\b${wrong}\\b`, 'g'), correct);
+          }
+        }
+        
+        // Fix language codes
+        const langMap: { [key: string]: string } = {
+  'azer': 'az',
+  'azerbaijan': 'az',
+  'azeri': 'az',
+  'english': 'en',
+  'russian': 'ru',
+  'russia': 'ru',
+  'turkish': 'tr',
+  'turkey': 'tr',
+  'french': 'fr',
+  'france': 'fr',
+  'spanish': 'es',
+  'spain': 'es',
+  'german': 'de',
+  'germany': 'de',
+  'korean': 'ko',
+  'korea': 'ko'
+};
+
+const changes: string[] = []; // Track what was changed
+        
+        for (const [wrong, correct] of Object.entries(langMap)) {
+  if (queryValidationError.includes(`'${wrong}' → Did you mean '${correct}'`)) {
+    fixed = fixed.replace(new RegExp(`'${wrong}'`, 'gi'), `'${correct}'`);
+    changes.push(`'${wrong}' → '${correct}'`);
+  }
+}
+        
+        // Fix 'art' → 'Art & Culture'
+        if (queryValidationError.includes("'art' → Did you mean 'Art & Culture'")) {
+          fixed = fixed.replace(/(['"])art\1/gi, "'Art & Culture'");
+        }
+        
+        // General catch-all
+        const generalMatch = queryValidationError.match(/'([^']+)' → Did you mean '([^']+)'\?/);
+        if (generalMatch) {
+          const [, wrong, correct] = generalMatch;
+          if (!fixed.includes(correct)) {
+            fixed = fixed.replace(new RegExp(`'${wrong.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'`, 'g'), `'${correct}'`);
+          }
+        }
+        
+        // Check if anything was actually fixed
+        if (fixed !== customQuery && changes.length > 0) {
+          setCustomQuery(fixed);
+          setQueryValidationError(null);
+          const beforeAfter = changes.map((c, i) => `${i + 1}. ${c}`).join('\n');
+          alert(`✅ Query Fixed Successfully!\n\n📝 Changes Made:\n${beforeAfter}\n\n✔️ Next Step: Click "Test Query" to verify`);
+      } else {
+   // Show what couldn't be fixed
+        const helpText = queryValidationError.includes('must be quoted') 
+          ? '💡 Add quotes around values: in (\'value1\', \'value2\')'
+          : queryValidationError.includes('Invalid field')
+          ? '💡 Check field names. Valid: timeRange, language, country, category, region, source, keywords'
+          : '💡 Check syntax carefully';
+  
+      alert(`⚠️ Could not auto-fix this error.\n\nError:\n${queryValidationError}\n\n${helpText}\n\nPlease fix manually.`);
+}
+      }}
+      className="w-full bg-green-500/20 hover:bg-green-500/30 border border-green-400/30 rounded-lg py-3 text-green-300 font-medium transition-all flex items-center justify-center gap-2"
+    >
+      <Check className="w-4 h-4" />
+      🔧 Fix Query Automatically
+    </button>
+  </div>
+)}
+</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Subscribe Modal */}
       {showSubscribeModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -1493,6 +2850,8 @@ const App: FC = () => {
                 <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
                 <input
                   type="email"
+                  value={subscribeEmail}
+                  onChange={(e) => setSubscribeEmail(e.target.value)}
                   placeholder="your@email.com"
                   className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -1500,7 +2859,11 @@ const App: FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Frequency</label>
-                <select className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select 
+                  value={subscribeFrequency}
+                  onChange={(e) => setSubscribeFrequency(e.target.value as any)}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
                   <option value="realtime" className="bg-slate-800">Real-time (as published)</option>
                   <option value="daily" className="bg-slate-800">Daily Digest (morning)</option>
                   <option value="weekly" className="bg-slate-800">Weekly Summary (Monday)</option>
@@ -1521,8 +2884,169 @@ const App: FC = () => {
             </div>
           </div>
         </div>
+      
+      )}
+
+      {/* Full News Modal */}
+      {showFullNewsModal && selectedFullNews && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-white/10 shadow-2xl">
+            <div className="sticky top-0 bg-slate-900/95 backdrop-blur-xl flex items-center justify-between p-6 border-b border-white/10 z-10">
+              <h2 className="text-2xl font-bold text-white">{selectedFullNews.title}</h2>
+              <button
+                onClick={() => setShowFullNewsModal(false)}
+                className="text-gray-400 hover:text-white transition-all"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Metadata */}
+              <div className="flex items-center gap-4 text-sm text-gray-400 flex-wrap">
+                <span className="flex items-center gap-1">
+                  <Building2 className="w-4 h-4" />
+                  {selectedFullNews.source}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-4 h-4" />
+                  {new Date(selectedFullNews.publishedDate || selectedFullNews.date).toLocaleDateString('en-US', {
+                    month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                  })}
+                </span>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r ${
+                  selectedFullNews.impact === 'critical' ? 'from-red-500 to-red-600' :
+                  selectedFullNews.impact === 'high' ? 'from-orange-500 to-orange-600' :
+                  selectedFullNews.impact === 'medium' ? 'from-yellow-500 to-yellow-600' :
+                  'from-blue-500 to-blue-600'
+                } text-white`}>
+                  {selectedFullNews.impact.toUpperCase()} IMPACT
+                </span>
+                {selectedFullNews.sourceUrl && (
+                  <a
+                   href={selectedFullNews.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-blue-400 hover:text-blue-300 ml-auto"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Read Original Source
+                  </a>
+                )}
+              </div>
+              
+              {/* Full Article Content */}
+              <div className="prose prose-invert max-w-none">
+                <h3 className="text-lg font-semibold text-white mb-3">Full Story</h3>
+                
+                {loadingFullArticle ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+                    <span className="ml-3 text-gray-400">Loading full article...</span>
+                  </div>
+                ) : articleContent ? (
+                  <>
+                    {articleContent.author && (
+                      <p className="text-sm text-gray-400 mb-4">By {articleContent.author}</p>
+                    )}
+                    <div 
+                      className="text-gray-300 text-base leading-relaxed article-content"
+                      dangerouslySetInnerHTML={{ __html: articleContent.html }}
+                    />
+                  </>
+                ) : (
+                  <p className="text-gray-300 text-base leading-relaxed">{selectedFullNews.summary}</p>
+                )}
+              </div>
+              
+              {/* AI Insight */}
+              <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-400/30 rounded-xl p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="w-5 h-5 text-purple-400" />
+                  <h3 className="text-lg font-semibold text-white">AI Strategic Analysis</h3>
+                  <span className="ml-auto px-3 py-1 bg-green-500/20 border border-green-400/30 rounded-full text-xs text-green-300 font-medium">
+                    {Math.round(selectedFullNews.confidence * 100)}% Confidence
+                  </span>
+                </div>
+                <p className="text-gray-300 leading-relaxed">{selectedFullNews.aiInsight}</p>
+              </div>
+
+              {/* Root Cause */}
+              <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-400/30 rounded-xl p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertCircle className="w-5 h-5 text-blue-400" />
+                  <h3 className="text-lg font-semibold text-white">Root Cause Analysis</h3>
+                </div>
+                <p className="text-blue-100 leading-relaxed">{selectedFullNews.rootCause}</p>
+              </div>
+              
+              {/* Predictions */}
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-4">Future Predictions</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  {Object.entries(selectedFullNews.predictions).map(([period, pred]) => (
+                    <div key={period} className="bg-gradient-to-br from-white/5 to-white/10 rounded-xl p-4 border border-white/10">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-400 uppercase font-bold">{period}</span>
+                        {pred.trend === 'up' ? <TrendingUp className="w-5 h-5 text-green-400" /> :
+                         pred.trend === 'down' ? <TrendingDown className="w-5 h-5 text-red-400" /> :
+                         <ArrowRight className="w-5 h-5 text-gray-400" />}
+                      </div>
+                      <div className={`text-3xl font-bold mb-2 ${
+                        pred.trend === 'up' ? 'text-green-400' :
+                        pred.trend === 'down' ? 'text-red-400' : 'text-gray-400'
+                      }`}>
+                        {pred.value > 0 ? '+' : ''}{pred.value}%
+                      </div>
+                      <p className="text-sm text-gray-300">{pred.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Key Indicators */}
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-3">Key Indicators to Monitor</h3>
+                <div className="flex flex-wrap gap-2">
+                  {selectedFullNews.keyIndicators.map((indicator, idx) => (
+                    <span key={idx} className="px-4 py-2 bg-gradient-to-r from-slate-700 to-slate-600 border border-slate-500/50 rounded-lg text-sm text-gray-200 font-medium">
+                      {indicator}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Source Information */}
+              <div className="border-t border-white/10 pt-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Source Information</h3>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-white">{selectedFullNews.source}</p>
+                      <p className="text-sm text-gray-400 mt-1">
+                        Published: {new Date(selectedFullNews.publishedDate || selectedFullNews.date).toLocaleString()}
+                      </p>
+                    </div>
+                    {selectedFullNews.sourceUrl && (
+                      <a
+                        href={selectedFullNews.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white font-medium flex items-center gap-2 transition-all"
+                      >
+                        Read Full Article <ExternalLink className="w-4 h-4" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
+   
+    
   );
 };
 
