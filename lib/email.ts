@@ -1,8 +1,20 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    console.warn('RESEND_API_KEY is not set. Email sending will be skipped.')
+    return null
+  }
+  return new Resend(apiKey)
+}
 
 export async function sendVerificationEmail(email: string, token: string) {
+  const resend = getResendClient()
+  if (!resend) {
+    console.log('Email service not configured. Skipping verification email.')
+    return { success: false, error: 'Email service not configured' }
+  }
   const verificationUrl = `${process.env.APP_URL}/auth/verify-email?token=${token}`
 
   try {
@@ -59,6 +71,12 @@ export async function sendVerificationEmail(email: string, token: string) {
 }
 
 export async function sendPasswordResetEmail(email: string, token: string) {
+  const resend = getResendClient()
+  if (!resend) {
+    console.log('Email service not configured. Skipping password reset email.')
+    return { success: false, error: 'Email service not configured' }
+  }
+
   const resetUrl = `${process.env.APP_URL}/auth/reset-password?token=${token}`
 
   try {
