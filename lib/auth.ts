@@ -15,31 +15,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error("Invalid credentials")
+          return null
         }
+
+        const email = credentials.email as string
+        const password = credentials.password as string
 
         const user = await prisma.user.findUnique({
           where: {
-            email: credentials.email
+            email: email
           }
         })
 
         if (!user || !user.password) {
-          throw new Error("Invalid credentials")
+          return null
         }
 
         // Check if email is verified
         if (!user.emailVerified) {
-          throw new Error("Please verify your email before logging in")
+          return null
         }
 
         const isPasswordValid = await bcrypt.compare(
-          credentials.password,
+          password,
           user.password
         )
 
         if (!isPasswordValid) {
-          throw new Error("Invalid credentials")
+          return null
         }
 
         return {
