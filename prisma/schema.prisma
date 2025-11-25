@@ -1,0 +1,171 @@
+// This is your Prisma schema file
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String?
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  profile       UserProfile?
+  chatArchives  ChatArchive[]
+  researches    Research[]
+  activities    Activity[]
+  savedFilters  SavedFilter[]
+  savedNews     SavedNews[]
+  subscriptions Subscription[]
+  verificationTokens VerificationToken[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  id         String   @id @default(cuid())
+  identifier String   // email address
+  token      String   @unique
+  expires    DateTime
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([identifier, token])
+}
+
+model UserProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  bio               String?
+  preferences       String?  // JSON string for user preferences
+  notificationSettings String?  // JSON string
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ChatArchive {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  messages  String   // JSON string of chat messages
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Research {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  query       String
+  results     String   // JSON string of research results
+  articlesCount Int    @default(0)
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // 'article_read', 'search', 'chat', 'research'
+  articleId   String?
+  articleTitle String?
+  category    String?
+  timeSpent   Int      @default(0) // in seconds
+  metadata    String?  // JSON string for additional data
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, type])
+}
+
+model SavedFilter {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  filterData  String   // JSON string of filter configuration
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SavedNews {
+  id          String   @id @default(cuid())
+  userId      String
+  articleId   String
+  articleUrl  String?
+  title       String
+  summary     String?
+  category    String?
+  source      String?
+  imageUrl    String?
+  savedAt     DateTime @default(now())
+  notes       String?
+  tags        String?  // Comma-separated tags
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, articleId])
+  @@index([userId, savedAt])
+}
+
+model Subscription {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // 'category', 'source', 'keyword', 'region'
+  value       String   // The actual category/source/keyword/region
+  frequency   String   @default("daily") // 'realtime', 'daily', 'weekly'
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+}
