@@ -27,9 +27,10 @@ function VerifyEmailContent() {
         if (response.ok) {
           setStatus('success')
           setMessage(data.message)
+          // Redirect to profile page after verification
           setTimeout(() => {
-            router.push('/auth/login')
-          }, 3000)
+            router.push(data.redirectTo || '/profile')
+          }, 2000)
         } else {
           setStatus('error')
           setMessage(data.error || 'Verification failed')
@@ -63,7 +64,7 @@ function VerifyEmailContent() {
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">Email Verified!</h2>
             <p className="text-slate-300 mb-6">{message}</p>
-            <p className="text-slate-400 text-sm">Redirecting to login...</p>
+            <p className="text-slate-400 text-sm">Redirecting to your profile...</p>
           </>
         )}
 

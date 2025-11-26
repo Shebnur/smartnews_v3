@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     }
 
     // Update user's email verification status
-    await prisma.user.update({
+    const user = await prisma.user.update({
       where: { id: verificationToken.userId! },
       data: { emailVerified: new Date() }
     })
@@ -48,7 +48,9 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         success: true,
-        message: 'Email verified successfully. You can now log in.'
+        message: 'Email verified successfully! Welcome to SmartNews Intelligence.',
+        userId: user.id,
+        redirectTo: '/profile'
       },
       { status: 200 }
     )
