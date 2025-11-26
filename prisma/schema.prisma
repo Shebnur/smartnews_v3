@@ -173,3 +173,16 @@ model Subscription {
 
   @@index([userId, type])
 }
+
+model SearchHistory {
+  id          String   @id @default(cuid())
+  userId      String
+  query       String   // Search query text
+  resultsCount Int     @default(0)
+  filters     String?  // JSON string of applied filters
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
