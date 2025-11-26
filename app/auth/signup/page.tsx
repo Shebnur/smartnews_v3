@@ -64,8 +64,8 @@ function SignUpForm() {
 
       setSuccess(true)
       setTimeout(() => {
-        router.push('/auth/login?verified=false')
-      }, 3000)
+        router.push('/auth/login')
+      }, 2000)
     } catch (err: any) {
       setError(err.message || 'An error occurred. Please check your connection and try again.')
       console.error('Signup error:', err)
@@ -87,11 +87,11 @@ function SignUpForm() {
               Welcome to SmartNews Intelligence ✨
             </p>
             <p className="text-slate-400 text-sm">
-              A verification email has been sent to <strong className="text-white">{formData.email}</strong>
+              Your account <strong className="text-white">{formData.email}</strong> is ready!
             </p>
             <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
               <p className="text-blue-300 text-sm">
-                📧 Check your inbox and verify your email to start exploring!
+                ✨ Redirecting you to login... You can access your profile right away!
               </p>
             </div>
           </div>
