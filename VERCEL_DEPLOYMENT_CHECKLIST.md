@@ -158,28 +158,31 @@ Your deployment is working if:
 - ✅ Login works
 - ✅ Profile page loads
 
-## 📋 Environment Variables Template
+## 📋 Environment Variables for Your Project
 
-Copy this and replace placeholders:
+**IMPORTANT:** Add these EXACT values to Vercel Dashboard → Settings → Environment Variables:
 
 ```bash
-# Get from Supabase Dashboard → Settings → Database
-DATABASE_URL=postgresql://postgres.xyzabcdef123:YourPassword@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+# Database (Supabase)
+DATABASE_URL=postgresql://postgres.adkioyqnvnkikwntvggf:Admiu1923!!@aws-1-eu-central-1.pooler.supabase.com:6543/postgres
 
-DIRECT_URL=postgresql://postgres.xyzabcdef123:YourPassword@aws-0-us-east-1.pooler.supabase.com:5432/postgres
+DIRECT_URL=postgresql://postgres:Admiu1923!!@db.adkioyqnvnkikwntvggf.supabase.co:5432/postgres
 
-# Use your actual Vercel URL
-NEXTAUTH_URL=https://your-app.vercel.app
+# NextAuth (Production)
+NEXTAUTH_URL=https://smartnews-v3.vercel.app
 
-# Generate with: openssl rand -base64 32
-NEXTAUTH_SECRET=your-generated-secret-here
+NEXTAUTH_SECRET=dyO+KQeOl3xBtGAzbg1TYycjnzO8j5X4jgWWJBqzFcs=
 
-# Optional
-RESEND_API_KEY=re_your_key
-EMAIL_FROM=noreply@yourdomain.com
-APP_URL=https://your-app.vercel.app
+# Optional (Email)
+RESEND_API_KEY=your-resend-api-key
+EMAIL_FROM=noreply@smartnews.com
+
+# App
+APP_URL=https://smartnews-v3.vercel.app
 APP_NAME=SmartNews Intelligence
 ```
+
+**⚠️ After adding these variables, you MUST redeploy for changes to take effect!**
 
 ## 🎉 Next Steps
 
