@@ -163,10 +163,10 @@ Your deployment is working if:
 **IMPORTANT:** Add these EXACT values to Vercel Dashboard → Settings → Environment Variables:
 
 ```bash
-# Database (Supabase)
-DATABASE_URL=postgresql://postgres.adkioyqnvnkikwntvggf:Admiu1923!!@aws-1-eu-central-1.pooler.supabase.com:6543/postgres
+# Database (Supabase) - UPDATED PASSWORD
+DATABASE_URL=postgresql://postgres.adkioyqnvnkikwntvggf:SmartNews2024!Secure@aws-1-eu-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true
 
-DIRECT_URL=postgresql://postgres:Admiu1923!!@db.adkioyqnvnkikwntvggf.supabase.co:5432/postgres
+DIRECT_URL=postgresql://postgres.adkioyqnvnkikwntvggf:SmartNews2024!Secure@db.adkioyqnvnkikwntvggf.supabase.co:5432/postgres
 
 # NextAuth (Production)
 NEXTAUTH_URL=https://smartnews-v3.vercel.app
@@ -183,6 +183,19 @@ APP_NAME=SmartNews Intelligence
 ```
 
 **⚠️ After adding these variables, you MUST redeploy for changes to take effect!**
+
+## 🗄️ CRITICAL: Create Database Tables First!
+
+**Before signup will work, you MUST create the tables in Supabase:**
+
+1. Go to **Supabase Dashboard** → Your Project
+2. Click **SQL Editor** (left sidebar)
+3. Click **"New query"**
+4. Copy and paste the entire content of `supabase-schema.sql`
+5. Click **"Run"** button
+6. Verify: Check **Table Editor** - you should see 12 tables (User, UserProfile, Account, Session, etc.)
+
+**Without these tables, signup will fail with "table does not exist" errors!**
 
 ## 🎉 Next Steps
 
