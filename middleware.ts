@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import { auth } from "@/lib/auth"
+import { getToken } from "next-auth/jwt"
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -11,9 +11,13 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/api/profile')
 
   if (isProtectedRoute) {
-    const session = await auth()
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+      secureCookie: process.env.NODE_ENV === 'production',
+    })
 
-    if (!session) {
+    if (!token) {
       // Redirect to login if accessing a protected page
       if (pathname.startsWith('/profile')) {
         const url = new URL('/auth/login', request.url)
