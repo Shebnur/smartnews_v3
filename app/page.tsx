@@ -5,6 +5,7 @@ import React, { useState, useEffect, useMemo, FC } from 'react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Search, Filter, TrendingUp, Globe, BookOpen, DollarSign, Zap, Shield, Heart, Car, Clock, Bell, MessageSquare, ChevronDown,ChevronUp, X, Check, ArrowRight, BarChart3, Brain, Mail, Calendar, AlertCircle, TrendingDown, Minus, MapPin, CheckSquare, Square, Bookmark, Share2, ExternalLink, Eye, Sparkles, Copy, Building2,FileCode,HelpCircle } from 'lucide-react';
 import LanguageSelector from './components/LanguageSelector';
+import AuthNav from './components/AuthNav';
 
 // Define the shape of a single news article
 interface NewsArticle {
@@ -1536,9 +1537,10 @@ const highlightQueryErrors = (query: string) => {
                 <BarChart3 className="w-4 h-4" />
                 {activeView === 'news' ? 'Analytics' : 'News Feed'}
               </button>
-              
-            
+
+
               <LanguageSelector />
+              <AuthNav />
             </div>
           </div>
         </div>
