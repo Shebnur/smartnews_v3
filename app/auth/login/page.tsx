@@ -35,11 +35,9 @@ function LoginForm() {
       const result = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
-        callbackUrl: callbackUrl,
-        redirect: true, // Let NextAuth handle the redirect
+        redirect: false,
       })
 
-      // This code only runs if redirect: false or if there's an error
       if (result?.error) {
         let errorMessage = result.error
 
@@ -52,6 +50,10 @@ function LoginForm() {
 
         setError(errorMessage)
         setLoading(false)
+      } else if (result?.ok) {
+        // Give time for session cookie to be set before redirect
+        await new Promise(resolve => setTimeout(resolve, 100))
+        window.location.href = callbackUrl
       }
     } catch (err: any) {
       setError('An error occurred during login. Please try again.')
