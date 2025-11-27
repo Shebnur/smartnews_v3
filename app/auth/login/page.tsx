@@ -48,7 +48,9 @@ function LoginForm() {
 
         setError(errorMessage)
       } else if (result?.ok) {
-        router.push('/')
+        // Redirect to callback URL if present, otherwise go to homepage
+        const callbackUrl = searchParams.get('callbackUrl') || '/'
+        router.push(callbackUrl)
         router.refresh()
       }
     } catch (err: any) {
