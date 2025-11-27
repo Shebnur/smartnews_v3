@@ -56,13 +56,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production'
+      }
+    }
+  },
   pages: {
     signIn: "/auth/login",
     signOut: "/auth/login",
     error: "/auth/error",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id
         token.email = user.email
@@ -83,4 +94,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   secret: process.env.NEXTAUTH_SECRET,
   trustHost: true,
+  debug: process.env.NODE_ENV === 'development',
 })
