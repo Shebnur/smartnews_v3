@@ -30,12 +30,16 @@ function LoginForm() {
     setLoading(true)
 
     try {
+      const callbackUrl = searchParams.get('callbackUrl') || '/'
+
       const result = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
-        redirect: false
+        callbackUrl: callbackUrl,
+        redirect: true, // Let NextAuth handle the redirect
       })
 
+      // This code only runs if redirect: false or if there's an error
       if (result?.error) {
         let errorMessage = result.error
 
@@ -47,16 +51,11 @@ function LoginForm() {
         }
 
         setError(errorMessage)
-      } else if (result?.ok) {
-        // Redirect to callback URL if present, otherwise go to homepage
-        const callbackUrl = searchParams.get('callbackUrl') || '/'
-        router.push(callbackUrl)
-        router.refresh()
+        setLoading(false)
       }
     } catch (err: any) {
       setError('An error occurred during login. Please try again.')
       console.error('Login error:', err)
-    } finally {
       setLoading(false)
     }
   }
