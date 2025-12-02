@@ -13,7 +13,8 @@ export async function middleware(request: NextRequest) {
   if (isProtectedRoute) {
     const token = await getToken({
       req: request,
-      secret: process.env.NEXTAUTH_SECRET
+      secret: process.env.NEXTAUTH_SECRET,
+      secureCookie: process.env.NODE_ENV === 'production',
     })
 
     if (!token) {
