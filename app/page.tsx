@@ -6,6 +6,7 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area, X
 import { Search, Filter, TrendingUp, Globe, BookOpen, DollarSign, Zap, Shield, Heart, Car, Clock, Bell, MessageSquare, ChevronDown,ChevronUp, X, Check, ArrowRight, BarChart3, Brain, Mail, Calendar, AlertCircle, TrendingDown, Minus, MapPin, CheckSquare, Square, Bookmark, Share2, ExternalLink, Eye, Sparkles, Copy, Building2,FileCode,HelpCircle } from 'lucide-react';
 import LanguageSelector from './components/LanguageSelector';
 import AuthNav from './components/AuthNav';
+import AIAgent from './components/AIAgent';
 
 // Define the shape of a single news article
 interface NewsArticle {
@@ -3046,9 +3047,17 @@ const changes: string[] = []; // Track what was changed
           </div>
         </div>
       )}
+
+      {/* AI Agent - Floating Chat Assistant */}
+      <AIAgent
+        onArticlesFound={(articles) => {
+          // Update the articles list with AI-found articles
+          setArticles(articles)
+        }}
+      />
     </div>
-   
-    
+
+
   );
 };
 
