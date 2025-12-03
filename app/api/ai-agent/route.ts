@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-})
-
 interface NewsFilters {
   sources?: string[]
   category?: string
@@ -26,6 +22,24 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Check if API key is configured
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.error('ANTHROPIC_API_KEY is not set')
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'AI service not configured',
+          message: 'Please contact administrator to set up ANTHROPIC_API_KEY'
+        },
+        { status: 500 }
+      )
+    }
+
+    // Initialize Anthropic client
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    })
 
     // Use Claude to understand the user's request and extract filters
     const systemPrompt = `You are a news search assistant. Your job is to understand user requests for news and extract relevant search filters.
