@@ -3051,8 +3051,8 @@ const changes: string[] = []; // Track what was changed
       {/* AI Agent - Floating Chat Assistant */}
       <AIAgent
         onArticlesFound={(articles) => {
-          // Update the articles list with AI-found articles
-          setArticles(articles)
+          // Update the news list with AI-found articles
+          setNews(articles)
         }}
       />
     </div>
