@@ -30,7 +30,7 @@ function LoginForm() {
     setLoading(true)
 
     try {
-      const callbackUrl = searchParams.get('callbackUrl') || '/'
+      const callbackUrl = searchParams.get('callbackUrl') || '/profile'
 
       const result = await signIn('credentials', {
         email: formData.email,
