@@ -47,7 +47,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
-          image: user.image,
+          // image field intentionally omitted to prevent cookie overflow
         }
       }
     })
@@ -78,14 +78,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id
         token.email = user.email
         token.name = user.name
-        token.image = user.image
+        // image field intentionally omitted to prevent cookie overflow
       }
 
       // Handle session updates from client-side update() calls
       if (trigger === 'update' && session?.user) {
         token.name = session.user.name
         token.email = session.user.email
-        token.image = session.user.image
+        // image field intentionally omitted to prevent cookie overflow
       }
 
       return token
@@ -95,7 +95,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.id as string
         session.user.email = token.email as string
         session.user.name = token.name as string | null
-        session.user.image = token.image as string | null
+        // image field intentionally omitted to prevent cookie overflow
       }
       return session
     }
