@@ -1,12 +1,10 @@
 'use client'
 
 import { useState, Suspense } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Mail, Lock, User, Sparkles, ArrowRight, AlertCircle, CheckCircle, Brain } from 'lucide-react'
 
 function SignUpForm() {
-  const router = useRouter()
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -63,9 +61,6 @@ function SignUpForm() {
       }
 
       setSuccess(true)
-      setTimeout(() => {
-        router.push('/auth/login')
-      }, 2000)
     } catch (err: any) {
       setError(err.message || 'An error occurred. Please check your connection and try again.')
       console.error('Signup error:', err)
@@ -84,16 +79,27 @@ function SignUpForm() {
             </div>
             <h2 className="text-3xl font-bold text-white mb-3">Account Created!</h2>
             <p className="text-slate-300 text-lg mb-2">
-              Welcome to SmartNews Intelligence ✨
+              Welcome to SmartNews Intelligence
             </p>
-            <p className="text-slate-400 text-sm">
-              Your account <strong className="text-white">{formData.email}</strong> is ready!
+            <p className="text-slate-400 text-sm mb-6">
+              A verification email has been sent to{' '}
+              <strong className="text-white">{formData.email}</strong>
             </p>
-            <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-              <p className="text-blue-300 text-sm">
-                ✨ Redirecting you to login... You can access your profile right away!
-              </p>
+            <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl mb-6">
+              <div className="flex items-start gap-3">
+                <Mail className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                <p className="text-yellow-300 text-sm text-left">
+                  Please check your inbox and click the verification link before logging in. Check your spam folder if you don't see it.
+                </p>
+              </div>
             </div>
+            <Link
+              href="/auth/login"
+              className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl transition-all"
+            >
+              Go to Login
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
         </div>
       </div>

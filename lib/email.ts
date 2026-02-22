@@ -15,7 +15,8 @@ export async function sendVerificationEmail(email: string, token: string) {
     console.log('Email service not configured. Skipping verification email.')
     return { success: false, error: 'Email service not configured' }
   }
-  const verificationUrl = `${process.env.APP_URL}/auth/verify-email?token=${token}`
+  const baseUrl = process.env.NEXTAUTH_URL || process.env.APP_URL
+  const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}`
 
   try {
     await resend.emails.send({
@@ -77,7 +78,8 @@ export async function sendPasswordResetEmail(email: string, token: string) {
     return { success: false, error: 'Email service not configured' }
   }
 
-  const resetUrl = `${process.env.APP_URL}/auth/reset-password?token=${token}`
+  const baseUrl = process.env.NEXTAUTH_URL || process.env.APP_URL
+  const resetUrl = `${baseUrl}/auth/reset-password?token=${token}`
 
   try {
     await resend.emails.send({
