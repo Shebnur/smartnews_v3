@@ -843,6 +843,7 @@ function SubscriptionsTab() {
 
 // Settings Tab Component
 function SettingsTab({ session }: { session: any }) {
+  const { update } = useSession()
   const [formData, setFormData] = useState({
     name: session?.user?.name || '',
     email: session?.user?.email || '',
@@ -884,6 +885,14 @@ function SettingsTab({ session }: { session: any }) {
 
       if (response.ok) {
         setMessage({ type: 'success', text: 'Profile updated successfully!' })
+        // Refresh the session to reflect the updated profile
+        await update({
+          user: {
+            name: data.user.name,
+            email: data.user.email,
+            image: data.user.image
+          }
+        })
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to update profile' })
       }

@@ -73,13 +73,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     error: "/auth/error",
   },
   callbacks: {
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id
         token.email = user.email
         token.name = user.name
         token.image = user.image
       }
+
+      // Handle session updates from client-side update() calls
+      if (trigger === 'update' && session?.user) {
+        token.name = session.user.name
+        token.email = session.user.email
+        token.image = session.user.image
+      }
+
       return token
     },
     async session({ session, token }) {

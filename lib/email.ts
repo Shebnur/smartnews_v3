@@ -12,10 +12,12 @@ function getResendClient() {
 export async function sendVerificationEmail(email: string, token: string) {
   const resend = getResendClient()
   if (!resend) {
-    console.log('Email service not configured. Skipping verification email.')
-    return { success: false, error: 'Email service not configured' }
+    throw new Error('Email service not configured. Please set RESEND_API_KEY and EMAIL_FROM environment variables.')
   }
   const baseUrl = process.env.NEXTAUTH_URL || process.env.APP_URL
+  if (!baseUrl) {
+    throw new Error('Application URL not configured. Please set NEXTAUTH_URL environment variable.')
+  }
   const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}`
 
   try {
@@ -67,18 +69,20 @@ export async function sendVerificationEmail(email: string, token: string) {
     return { success: true }
   } catch (error) {
     console.error('Failed to send verification email:', error)
-    return { success: false, error }
+    throw error
   }
 }
 
 export async function sendPasswordResetEmail(email: string, token: string) {
   const resend = getResendClient()
   if (!resend) {
-    console.log('Email service not configured. Skipping password reset email.')
-    return { success: false, error: 'Email service not configured' }
+    throw new Error('Email service not configured. Please set RESEND_API_KEY and EMAIL_FROM environment variables.')
   }
 
   const baseUrl = process.env.NEXTAUTH_URL || process.env.APP_URL
+  if (!baseUrl) {
+    throw new Error('Application URL not configured. Please set NEXTAUTH_URL environment variable.')
+  }
   const resetUrl = `${baseUrl}/auth/reset-password?token=${token}`
 
   try {
@@ -133,6 +137,6 @@ export async function sendPasswordResetEmail(email: string, token: string) {
     return { success: true }
   } catch (error) {
     console.error('Failed to send password reset email:', error)
-    return { success: false, error }
+    throw error
   }
 }

@@ -41,7 +41,15 @@ export async function POST(request: Request) {
       },
     })
 
-    await sendPasswordResetEmail(email, resetToken)
+    try {
+      await sendPasswordResetEmail(email, resetToken)
+    } catch (emailError: any) {
+      console.error('Failed to send password reset email:', emailError)
+      return NextResponse.json(
+        { error: emailError.message || 'Email service unavailable. Please contact support.' },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json(
       { success: true, message: 'If that email exists, a reset link has been sent.' },
