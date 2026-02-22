@@ -877,7 +877,8 @@ function SettingsTab({ session }: { session: any }) {
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
-          image: profileImage
+          // Image upload disabled - will be implemented with cloud storage later
+          // image: profileImage
         })
       })
 
@@ -890,7 +891,7 @@ function SettingsTab({ session }: { session: any }) {
           user: {
             name: data.user.name,
             email: data.user.email,
-            image: data.user.image
+            // Don't update image in session to prevent cookie overflow
           }
         })
       } else {
@@ -963,32 +964,25 @@ function SettingsTab({ session }: { session: any }) {
       )}
 
       {/* Profile Picture */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h3 className="text-white font-medium mb-4">Profile Picture</h3>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-6 opacity-60">
+        <h3 className="text-white font-medium mb-4 flex items-center gap-2">
+          Profile Picture
+          <span className="text-xs text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded">Coming Soon</span>
+        </h3>
         <div className="flex items-center gap-6">
           <div className="relative">
             <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center overflow-hidden">
-              {profileImage ? (
-                <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-3xl font-bold text-white">
-                  {formData.name?.charAt(0).toUpperCase() || formData.email?.charAt(0).toUpperCase()}
-                </span>
-              )}
+              <span className="text-3xl font-bold text-white">
+                {formData.name?.charAt(0).toUpperCase() || formData.email?.charAt(0).toUpperCase()}
+              </span>
             </div>
-            <label className="absolute -bottom-2 -right-2 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-all shadow-lg">
+            <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-slate-600 rounded-full flex items-center justify-center cursor-not-allowed opacity-50">
               <Camera className="w-5 h-5 text-white" />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-              />
-            </label>
+            </div>
           </div>
           <div>
-            <p className="text-white font-medium mb-1">Upload a new picture</p>
-            <p className="text-slate-400 text-sm">JPG, PNG or GIF. Max size 2MB</p>
+            <p className="text-slate-400 font-medium mb-1">Custom profile pictures coming soon</p>
+            <p className="text-slate-500 text-sm">We're implementing cloud storage for profile images</p>
           </div>
         </div>
       </div>

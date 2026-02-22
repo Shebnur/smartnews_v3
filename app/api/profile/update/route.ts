@@ -13,7 +13,9 @@ export async function PATCH(request: Request) {
       )
     }
 
-    const { name, email, image } = await request.json()
+    const { name, email } = await request.json()
+    // Note: image field intentionally not accepted to prevent cookie overflow
+    // Will be implemented with cloud storage (Vercel Blob/Cloudinary) later
 
     // Check if email is already taken by another user
     if (email && email !== session.user.email) {
@@ -35,7 +37,6 @@ export async function PATCH(request: Request) {
       data: {
         ...(name !== undefined && { name }),
         ...(email !== undefined && { email }),
-        ...(image !== undefined && { image })
       }
     })
 
@@ -44,7 +45,6 @@ export async function PATCH(request: Request) {
       user: {
         name: updatedUser.name,
         email: updatedUser.email,
-        image: updatedUser.image
       }
     })
   } catch (error) {
