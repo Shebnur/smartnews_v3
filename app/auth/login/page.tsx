@@ -72,8 +72,8 @@ function LoginForm() {
               <Brain className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-white">SmartNews</h2>
-              <p className="text-sm text-blue-400">Intelligence Platform</p>
+              <h2 className="text-2xl font-bold text-white">DEEPWIRE Global</h2>
+              <p className="text-sm text-blue-400">Intelligence Network</p>
             </div>
           </div>
 

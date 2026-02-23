@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
               <Brain className="w-6 h-6 text-white" />
             </div>
-            <span className="text-white font-semibold">SmartNews</span>
+            <span className="text-white font-semibold">DEEPWIRE Global</span>
           </div>
 
           <div className="mb-8">

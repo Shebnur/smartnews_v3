@@ -22,7 +22,7 @@ export async function sendVerificationEmail(email: string, token: string) {
 
   try {
     await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'noreply@smartnews.com',
+      from: process.env.EMAIL_FROM || 'noreply@deepwireglobal.com',
       to: email,
       subject: 'Verify your email address',
       html: `
@@ -34,7 +34,7 @@ export async function sendVerificationEmail(email: string, token: string) {
           </head>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-              <h1 style="color: white; margin: 0;">SmartNews Intelligence</h1>
+              <h1 style="color: white; margin: 0;">DEEPWIRE Global</h1>
             </div>
             <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
               <h2 style="color: #333; margin-top: 0;">Verify Your Email Address</h2>
@@ -87,7 +87,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
 
   try {
     await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'noreply@smartnews.com',
+      from: process.env.EMAIL_FROM || 'noreply@deepwireglobal.com',
       to: email,
       subject: 'Reset your password',
       html: `
@@ -99,7 +99,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
           </head>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-              <h1 style="color: white; margin: 0;">SmartNews Intelligence</h1>
+              <h1 style="color: white; margin: 0;">DEEPWIRE Global</h1>
             </div>
             <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
               <h2 style="color: #333; margin-top: 0;">Reset Your Password</h2>

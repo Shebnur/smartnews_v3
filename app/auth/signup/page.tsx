@@ -79,7 +79,7 @@ function SignUpForm() {
             </div>
             <h2 className="text-3xl font-bold text-white mb-3">Account Created!</h2>
             <p className="text-slate-300 text-lg mb-2">
-              Welcome to SmartNews Intelligence
+              Welcome to DEEPWIRE Global
             </p>
             <p className="text-slate-400 text-sm mb-6">
               A verification email has been sent to{' '}
@@ -116,8 +116,8 @@ function SignUpForm() {
               <Brain className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-white">SmartNews</h2>
-              <p className="text-sm text-blue-400">Intelligence Platform</p>
+              <h2 className="text-2xl font-bold text-white">DEEPWIRE Global</h2>
+              <p className="text-sm text-blue-400">Intelligence Network</p>
             </div>
           </div>
 
