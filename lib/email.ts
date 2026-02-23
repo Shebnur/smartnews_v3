@@ -20,9 +20,17 @@ export async function sendVerificationEmail(email: string, token: string) {
   }
   const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}`
 
+  const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev'
+  console.log('[EMAIL DEBUG] Attempting to send verification email:', {
+    to: email,
+    from: fromEmail,
+    baseUrl,
+    hasApiKey: !!process.env.RESEND_API_KEY
+  })
+
   try {
     await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'noreply@deepwireglobal.com',
+      from: fromEmail,
       to: email,
       subject: 'Verify your email address',
       html: `
@@ -66,10 +74,15 @@ export async function sendVerificationEmail(email: string, token: string) {
         </html>
       `
     })
+    console.log('[EMAIL DEBUG] Verification email sent successfully to:', email)
     return { success: true }
-  } catch (error) {
-    console.error('Failed to send verification email:', error)
-    throw error
+  } catch (error: any) {
+    console.error('[EMAIL ERROR] Failed to send verification email:', {
+      error: error.message,
+      details: error,
+      to: email
+    })
+    throw new Error(`Failed to send email: ${error.message || 'Unknown error'}`)
   }
 }
 
@@ -85,9 +98,17 @@ export async function sendPasswordResetEmail(email: string, token: string) {
   }
   const resetUrl = `${baseUrl}/auth/reset-password?token=${token}`
 
+  const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev'
+  console.log('[EMAIL DEBUG] Attempting to send password reset email:', {
+    to: email,
+    from: fromEmail,
+    baseUrl,
+    hasApiKey: !!process.env.RESEND_API_KEY
+  })
+
   try {
-    await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'noreply@deepwireglobal.com',
+    const result = await resend.emails.send({
+      from: fromEmail,
       to: email,
       subject: 'Reset your password',
       html: `
@@ -134,9 +155,14 @@ export async function sendPasswordResetEmail(email: string, token: string) {
         </html>
       `
     })
+    console.log('[EMAIL DEBUG] Password reset email sent successfully to:', email)
     return { success: true }
-  } catch (error) {
-    console.error('Failed to send password reset email:', error)
-    throw error
+  } catch (error: any) {
+    console.error('[EMAIL ERROR] Failed to send password reset email:', {
+      error: error.message,
+      details: error,
+      to: email
+    })
+    throw new Error(`Failed to send email: ${error.message || 'Unknown error'}`)
   }
 }
