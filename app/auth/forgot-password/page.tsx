@@ -9,6 +9,7 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
+  const [debugInfo, setDebugInfo] = useState<any>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,6 +29,7 @@ export default function ForgotPasswordPage() {
         throw new Error(data.error || 'Something went wrong. Please try again.')
       }
 
+      setDebugInfo(data.debug)
       setSubmitted(true)
     } catch (err: any) {
       setError(err.message || 'An error occurred. Please try again.')
@@ -48,9 +50,20 @@ export default function ForgotPasswordPage() {
             <p className="text-slate-300 mb-2">
               If an account exists for <strong className="text-white">{email}</strong>, a password reset link has been sent.
             </p>
-            <p className="text-slate-400 text-sm mb-8">
+            <p className="text-slate-400 text-sm mb-4">
               The link expires in 1 hour. Check your spam folder if you don't see it.
             </p>
+            {debugInfo && (
+              <div className="bg-yellow-500/10 border border-yellow-500/50 text-yellow-400 px-4 py-3 rounded-xl text-xs mb-4">
+                <p className="font-semibold mb-1">Debug Info:</p>
+                <p>Sent to: {debugInfo.emailSentTo}</p>
+                <p>From: {debugInfo.fromEmail}</p>
+                <p>API Key: {debugInfo.apiKeyPrefix}</p>
+                <p className="mt-2 text-yellow-300">
+                  Check your Resend dashboard at resend.com/emails
+                </p>
+              </div>
+            )}
             <Link
               href="/auth/login"
               className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl transition-all"
