@@ -44,20 +44,10 @@ export async function POST(request: Request) {
     try {
       await sendPasswordResetEmail(email, resetToken)
 
-      // Debug info to help troubleshoot
-      const debugInfo = {
-        emailSentTo: email,
-        fromEmail: process.env.EMAIL_FROM || 'onboarding@resend.dev',
-        hasApiKey: !!process.env.RESEND_API_KEY,
-        apiKeyPrefix: process.env.RESEND_API_KEY?.substring(0, 8) + '...',
-      }
-      console.log('[DEBUG] Email sent successfully:', debugInfo)
-
       return NextResponse.json(
         {
           success: true,
-          message: 'If that email exists, a reset link has been sent.',
-          debug: debugInfo // Temporary - remove in production
+          message: 'If that email exists, a reset link has been sent.'
         },
         { status: 200 }
       )
