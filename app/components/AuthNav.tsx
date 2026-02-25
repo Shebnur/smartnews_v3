@@ -40,7 +40,7 @@ export default function AuthNav() {
         {showMenu && (
           <div className="absolute right-0 mt-2 w-56 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden">
             <div className="p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-b border-slate-700">
-              <p className="text-sm text-slate-400">Welcome to SmartNews</p>
+              <p className="text-sm text-slate-400">Welcome to DEEPWIRE Global</p>
             </div>
             <div className="p-2">
               <Link

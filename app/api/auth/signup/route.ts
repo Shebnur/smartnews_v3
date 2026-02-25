@@ -43,13 +43,11 @@ export async function POST(request: Request) {
     const verificationToken = crypto.randomBytes(32).toString('hex')
     const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
 
-    // Create user with auto-verification for testing (TODO: Remove in production)
     const user = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
         name: name || null,
-        emailVerified: new Date(), // Auto-verify for testing
         verificationTokens: {
           create: {
             identifier: email,
@@ -63,17 +61,24 @@ export async function POST(request: Request) {
       }
     })
 
-    // Try to send verification email (will fail gracefully if email not configured)
+    // Try to send verification email
     try {
       await sendVerificationEmail(email, verificationToken)
-    } catch (emailError) {
-      console.log('Email not configured, skipping verification email')
+    } catch (emailError: any) {
+      console.error('Failed to send verification email:', emailError)
+      // Account created but email failed - inform user
+      return NextResponse.json(
+        {
+          error: `Account created but failed to send verification email: ${emailError.message || 'Email service unavailable'}. Please contact support.`,
+        },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json(
       {
         success: true,
-        message: 'Account created successfully! You can now log in.',
+        message: 'Account created! Please check your email to verify your account.',
         userId: user.id
       },
       { status: 201 }

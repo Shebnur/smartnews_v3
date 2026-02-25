@@ -12,14 +12,25 @@ function getResendClient() {
 export async function sendVerificationEmail(email: string, token: string) {
   const resend = getResendClient()
   if (!resend) {
-    console.log('Email service not configured. Skipping verification email.')
-    return { success: false, error: 'Email service not configured' }
+    throw new Error('Email service not configured. Please set RESEND_API_KEY and EMAIL_FROM environment variables.')
   }
-  const verificationUrl = `${process.env.APP_URL}/auth/verify-email?token=${token}`
+  const baseUrl = process.env.NEXTAUTH_URL || process.env.APP_URL
+  if (!baseUrl) {
+    throw new Error('Application URL not configured. Please set NEXTAUTH_URL environment variable.')
+  }
+  const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}`
+
+  const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev'
+  console.log('[EMAIL DEBUG] Attempting to send verification email:', {
+    to: email,
+    from: fromEmail,
+    baseUrl,
+    hasApiKey: !!process.env.RESEND_API_KEY
+  })
 
   try {
     await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'noreply@smartnews.com',
+      from: fromEmail,
       to: email,
       subject: 'Verify your email address',
       html: `
@@ -31,7 +42,7 @@ export async function sendVerificationEmail(email: string, token: string) {
           </head>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-              <h1 style="color: white; margin: 0;">SmartNews Intelligence</h1>
+              <h1 style="color: white; margin: 0;">DEEPWIRE Global</h1>
             </div>
             <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
               <h2 style="color: #333; margin-top: 0;">Verify Your Email Address</h2>
@@ -63,25 +74,41 @@ export async function sendVerificationEmail(email: string, token: string) {
         </html>
       `
     })
+    console.log('[EMAIL DEBUG] Verification email sent successfully to:', email)
     return { success: true }
-  } catch (error) {
-    console.error('Failed to send verification email:', error)
-    return { success: false, error }
+  } catch (error: any) {
+    console.error('[EMAIL ERROR] Failed to send verification email:', {
+      error: error.message,
+      details: error,
+      to: email
+    })
+    throw new Error(`Failed to send email: ${error.message || 'Unknown error'}`)
   }
 }
 
 export async function sendPasswordResetEmail(email: string, token: string) {
   const resend = getResendClient()
   if (!resend) {
-    console.log('Email service not configured. Skipping password reset email.')
-    return { success: false, error: 'Email service not configured' }
+    throw new Error('Email service not configured. Please set RESEND_API_KEY and EMAIL_FROM environment variables.')
   }
 
-  const resetUrl = `${process.env.APP_URL}/auth/reset-password?token=${token}`
+  const baseUrl = process.env.NEXTAUTH_URL || process.env.APP_URL
+  if (!baseUrl) {
+    throw new Error('Application URL not configured. Please set NEXTAUTH_URL environment variable.')
+  }
+  const resetUrl = `${baseUrl}/auth/reset-password?token=${token}`
+
+  const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev'
+  console.log('[EMAIL DEBUG] Attempting to send password reset email:', {
+    to: email,
+    from: fromEmail,
+    baseUrl,
+    hasApiKey: !!process.env.RESEND_API_KEY
+  })
 
   try {
-    await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'noreply@smartnews.com',
+    const result = await resend.emails.send({
+      from: fromEmail,
       to: email,
       subject: 'Reset your password',
       html: `
@@ -93,7 +120,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
           </head>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-              <h1 style="color: white; margin: 0;">SmartNews Intelligence</h1>
+              <h1 style="color: white; margin: 0;">DEEPWIRE Global</h1>
             </div>
             <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
               <h2 style="color: #333; margin-top: 0;">Reset Your Password</h2>
@@ -128,9 +155,14 @@ export async function sendPasswordResetEmail(email: string, token: string) {
         </html>
       `
     })
+    console.log('[EMAIL DEBUG] Password reset email sent successfully to:', email)
     return { success: true }
-  } catch (error) {
-    console.error('Failed to send password reset email:', error)
-    return { success: false, error }
+  } catch (error: any) {
+    console.error('[EMAIL ERROR] Failed to send password reset email:', {
+      error: error.message,
+      details: error,
+      to: email
+    })
+    throw new Error(`Failed to send email: ${error.message || 'Unknown error'}`)
   }
 }

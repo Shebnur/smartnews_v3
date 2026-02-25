@@ -48,7 +48,7 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         success: true,
-        message: 'Email verified successfully! Welcome to SmartNews Intelligence.',
+        message: 'Email verified successfully! Welcome to DEEPWIRE Global.',
         userId: user.id,
         redirectTo: '/profile'
       },

@@ -30,7 +30,7 @@ function LoginForm() {
     setLoading(true)
 
     try {
-      const callbackUrl = searchParams.get('callbackUrl') || '/'
+      const callbackUrl = searchParams.get('callbackUrl') || '/profile'
 
       const result = await signIn('credentials', {
         email: formData.email,
@@ -72,8 +72,8 @@ function LoginForm() {
               <Brain className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-white">SmartNews</h2>
-              <p className="text-sm text-blue-400">Intelligence Platform</p>
+              <h2 className="text-2xl font-bold text-white">DEEPWIRE Global</h2>
+              <p className="text-sm text-blue-400">Intelligence Network</p>
             </div>
           </div>
 
@@ -135,6 +135,8 @@ function LoginForm() {
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <input
                     type="email"
+                    name="email"
+                    autoComplete="email"
                     required
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -145,13 +147,23 @@ function LoginForm() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Password
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-slate-300">
+                    Password
+                  </label>
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <input
                     type="password"
+                    name="password"
+                    autoComplete="current-password"
                     required
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}

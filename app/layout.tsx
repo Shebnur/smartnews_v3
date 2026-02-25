@@ -8,8 +8,8 @@ import { Providers } from './providers';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'SmartNews Intelligence',
-  description: 'Real-time news intelligence platform with AI-powered insights',
+  title: 'DEEPWIRE Global',
+  description: 'Real-time global intelligence platform with AI-powered insights',
 };
 
 export default function RootLayout({
