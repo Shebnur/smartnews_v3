@@ -1,132 +1,233 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { ScraperManager } from '@/app/services/scrapers/ScraperManager';
+import { NextRequest, NextResponse } from 'next/server'
+import { gnewsService } from '@/lib/gnews'
+import { articleService } from '@/lib/articleService'
+import { ScraperManager } from '@/app/services/scrapers/ScraperManager'
 
-const scraperManager = new ScraperManager();
+const scraperManager = new ScraperManager()
+
+// Feature flag to enable/disable GNews API
+const USE_GNEWS = process.env.GNEWS_API_KEY !== undefined
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  
-  const sources = searchParams.get('sources')?.split(',') || undefined;
-  const country = searchParams.get('country') || '';
-  const category = searchParams.get('category') || '';
-  
+  const searchParams = request.nextUrl.searchParams
+
+  const category = searchParams.get('category') || undefined
+  const country = searchParams.get('country') || undefined
+  const fresh = searchParams.get('fresh') === 'true' // Force fresh fetch from API
+  const limit = parseInt(searchParams.get('limit') || '50')
+
   try {
-    // Scrape news from selected sources
-    let articles = await scraperManager.scrapeAll(sources);
-    
-    // Filter by country if specified
-    if (country) {
-      // Filter logic based on source or content
-      articles = articles.filter(article => {
-        if (country === 'az') {
-          return article.sourceUrl.includes('azertac') || 
-                 article.sourceUrl.includes('trend.az');
-        }
-        return true;
-      });
+    // Strategy: Database-first with smart refresh
+    // 1. Check if we have fresh articles in DB (< 1 hour old)
+    // 2. If yes, serve from DB (fast, free)
+    // 3. If no or fresh=true, fetch from GNews + regional scrapers
+
+    const hasFreshData = fresh ? false : await articleService.hasFreshArticles(60)
+
+    if (hasFreshData && !fresh) {
+      // Serve from database
+      console.log('[News API] Serving from database cache')
+      const articles = await articleService.getArticles({
+        category,
+        limit,
+      })
+
+      return NextResponse.json({
+        success: true,
+        source: 'cache',
+        articles: articles.map(transformDbArticle),
+        count: articles.length,
+      })
     }
-    
-    // Transform to your NewsArticle format
-    const transformedArticles = articles.map((article, index) => ({
-      id: index + 1,
-      title: article.title,
-      summary: article.summary,
-      category: article.category || determineCategory(article.title),
-      region: determineRegion(article.sourceUrl),
-      countries: [determineCountry(article.sourceUrl)],
-      impact: determineImpact(article.title),
-      source: getSourceName(article.sourceUrl),
-      date: new Date(article.publishedDate).toISOString().split('T')[0],
-      aiInsight: generateInsight(article.title, article.summary),
-      rootCause: generateRootCause(article.title),
-      confidence: 0.85,
-      predictions: generatePredictions(),
-      keyIndicators: extractKeywords(article.title, article.summary),
-      readTime: Math.ceil((article.content?.length || 500) / 200),
-      language: detectLanguage(article.sourceUrl),
-      publishedDate: article.publishedDate,
-      sourceUrl: article.sourceUrl,
-      author: article.author,
-      imageUrl: article.imageUrl,
-      fullContent: article.content,
-      fullHtmlContent: article.content
-    }));
-    
-    return NextResponse.json({ 
-      success: true, 
-      articles: transformedArticles,
-      count: transformedArticles.length 
-    });
-    
+
+    // Fetch fresh data
+    console.log('[News API] Fetching fresh data from APIs')
+    const allArticles = []
+
+    // 1. Fetch from GNews API (if enabled and API key exists)
+    if (USE_GNEWS) {
+      try {
+        const gnewsParams: any = {
+          max: 20,
+          lang: 'en',
+        }
+
+        if (category) {
+          gnewsParams.category = mapCategory(category)
+        }
+
+        if (country && country !== 'az') {
+          gnewsParams.country = country
+        }
+
+        const gnewsData = await gnewsService.getTopHeadlines(gnewsParams)
+
+        // Transform and add GNews articles
+        const gnewsArticles = gnewsData.articles.map((article, index) =>
+          gnewsService.transformArticle(article, index)
+        )
+
+        allArticles.push(...gnewsArticles)
+        console.log(`[News API] Fetched ${gnewsArticles.length} articles from GNews`)
+      } catch (error) {
+        console.error('[News API] GNews fetch failed:', error)
+        // Continue with other sources
+      }
+    }
+
+    // 2. Fetch from regional scrapers (always for Azerbaijan news)
+    if (!country || country === 'az') {
+      try {
+        const regionalSources = ['azertac', 'trend']
+        const scrapedArticles = await scraperManager.scrapeAll(regionalSources)
+
+        const transformedScraped = scrapedArticles.map((article, index) => ({
+          id: allArticles.length + index + 1,
+          title: article.title,
+          summary: article.summary,
+          category: article.category || 'general',
+          region: 'central-asia',
+          countries: ['azerbaijan'],
+          impact: 'high',
+          source: getSourceName(article.sourceUrl),
+          date: new Date(article.publishedDate).toISOString().split('T')[0],
+          aiInsight: '',
+          rootCause: '',
+          confidence: 0,
+          predictions: null,
+          keyIndicators: extractKeywords(article.title, article.summary),
+          readTime: Math.ceil((article.content?.length || 500) / 200),
+          language: detectLanguage(article.sourceUrl),
+          publishedDate: article.publishedDate,
+          sourceUrl: article.sourceUrl,
+          author: article.author,
+          imageUrl: article.imageUrl,
+          fullContent: article.content,
+          fullHtmlContent: article.content,
+        }))
+
+        allArticles.push(...transformedScraped)
+        console.log(`[News API] Fetched ${transformedScraped.length} articles from regional scrapers`)
+      } catch (error) {
+        console.error('[News API] Regional scraper failed:', error)
+        // Continue with GNews articles
+      }
+    }
+
+    // 3. Save articles to database for caching
+    if (allArticles.length > 0) {
+      try {
+        const articlesToSave = allArticles.map(article => ({
+          title: article.title,
+          summary: article.summary,
+          fullContent: article.fullContent,
+          category: article.category,
+          region: article.region,
+          countries: article.countries,
+          impact: article.impact,
+          source: article.source,
+          sourceUrl: article.sourceUrl,
+          author: article.author,
+          imageUrl: article.imageUrl || undefined,
+          publishedDate: article.publishedDate,
+          aiInsight: article.aiInsight,
+          rootCause: article.rootCause,
+          confidence: article.confidence,
+          predictions: article.predictions,
+          keyIndicators: article.keyIndicators,
+          language: article.language,
+          readTime: article.readTime,
+        }))
+
+        await articleService.saveArticles(articlesToSave)
+        console.log(`[News API] Saved ${allArticles.length} articles to database`)
+      } catch (error) {
+        console.error('[News API] Failed to save articles to database:', error)
+        // Continue - serving articles even if saving fails
+      }
+    }
+
+    // 4. Return articles
+    return NextResponse.json({
+      success: true,
+      source: 'api',
+      articles: allArticles.slice(0, limit),
+      count: allArticles.length,
+    })
+
   } catch (error) {
-    console.error('Error scraping news:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Failed to scrape news',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error('[News API] Error:', error)
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to fetch news',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    }, { status: 500 })
   }
 }
 
-// Helper functions
-function getSourceName(url: string): string {
-  if (url.includes('azertac')) return 'Azertac';
-  if (url.includes('trend.az')) return 'Trend News Agency';
-  if (url.includes('bloomberg')) return 'Bloomberg';
-  if (url.includes('bbc')) return 'BBC News';
-  if (url.includes('reuters')) return 'Reuters';
-  return 'Unknown Source';
-}
-
-function determineCategory(title: string): string {
-  const lower = title.toLowerCase();
-  if (lower.includes('tech') || lower.includes('ai')) return 'technology';
-  if (lower.includes('business') || lower.includes('market')) return 'economy';
-  if (lower.includes('energy') || lower.includes('oil')) return 'energy';
-  if (lower.includes('health')) return 'health';
-  return 'general';
-}
-
-function determineRegion(url: string): string {
-  if (url.includes('azertac') || url.includes('trend.az')) return 'central-asia';
-  if (url.includes('bbc') || url.includes('reuters')) return 'global';
-  return 'global';
-}
-
-function determineCountry(url: string): string {
-  if (url.includes('azertac') || url.includes('trend.az')) return 'azerbaijan';
-  return 'global';
-}
-
-function determineImpact(title: string): string {
-  const keywords = ['historic', 'breakthrough', 'major', 'critical'];
-  return keywords.some(k => title.toLowerCase().includes(k)) ? 'critical' : 'high';
-}
-
-function detectLanguage(url: string): string {
-  if (url.includes('/en')) return 'en';
-  if (url.includes('azertac.az') && !url.includes('/en')) return 'az';
-  return 'en';
-}
-
-function generateInsight(title: string, summary: string): string {
-  return `AI Analysis: ${summary.slice(0, 150)}... This development shows significant implications for ${determineCategory(title)} sector.`;
-}
-
-function generateRootCause(title: string): string {
-  return `Analysis suggests this ${determineCategory(title)} development stems from recent market dynamics and strategic positioning.`;
-}
-
-function generatePredictions() {
+// Helper: Transform DB article to API format
+function transformDbArticle(article: any) {
   return {
-    '3m': { trend: 'up', value: 15, description: 'Short-term positive trajectory expected' },
-    '6m': { trend: 'stable', value: 10, description: 'Mid-term stabilization anticipated' },
-    '12m': { trend: 'up', value: 25, description: 'Long-term growth trajectory likely' }
-  };
+    id: article.id,
+    title: article.title,
+    summary: article.summary,
+    category: article.category,
+    region: article.region,
+    countries: article.countries,
+    impact: article.impact,
+    source: article.source,
+    date: new Date(article.publishedDate).toISOString().split('T')[0],
+    aiInsight: article.aiInsight || '',
+    rootCause: article.rootCause || '',
+    confidence: article.confidence || 0,
+    predictions: article.predictions ? JSON.parse(article.predictions) : null,
+    keyIndicators: article.keyIndicators || [],
+    readTime: article.readTime || 3,
+    language: article.language,
+    publishedDate: article.publishedDate,
+    sourceUrl: article.sourceUrl,
+    author: article.author,
+    imageUrl: article.imageUrl,
+    fullContent: article.fullContent,
+    fullHtmlContent: article.fullContent,
+  }
 }
 
+// Helper: Map frontend category to GNews category
+function mapCategory(category: string): string {
+  const mapping: Record<string, string> = {
+    technology: 'technology',
+    economy: 'business',
+    energy: 'business',
+    health: 'health',
+    politics: 'nation',
+    sports: 'sports',
+    entertainment: 'entertainment',
+    science: 'science',
+  }
+  return mapping[category] || 'general'
+}
+
+// Helper: Get source name from URL
+function getSourceName(url: string): string {
+  if (url.includes('azertac')) return 'Azertac'
+  if (url.includes('trend.az')) return 'Trend News Agency'
+  if (url.includes('bloomberg')) return 'Bloomberg'
+  if (url.includes('bbc')) return 'BBC News'
+  if (url.includes('reuters')) return 'Reuters'
+  return 'Unknown Source'
+}
+
+// Helper: Detect language from URL
+function detectLanguage(url: string): string {
+  if (url.includes('/en')) return 'en'
+  if (url.includes('azertac.az') && !url.includes('/en')) return 'az'
+  return 'en'
+}
+
+// Helper: Extract keywords
 function extractKeywords(title: string, summary: string): string[] {
-  const text = `${title} ${summary}`.toLowerCase();
-  const keywords = ['market', 'economy', 'technology', 'energy', 'policy'];
-  return keywords.filter(k => text.includes(k)).map(k => k.charAt(0).toUpperCase() + k.slice(1));
+  const text = `${title} ${summary}`.toLowerCase()
+  const keywords = ['market', 'economy', 'technology', 'energy', 'policy', 'trade', 'security']
+  return keywords.filter(k => text.includes(k)).map(k => k.charAt(0).toUpperCase() + k.slice(1))
 }

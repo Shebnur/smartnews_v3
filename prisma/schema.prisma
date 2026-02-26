@@ -186,3 +186,37 @@ model SearchHistory {
 
   @@index([userId, createdAt])
 }
+
+model Article {
+  id              String   @id @default(cuid())
+  title           String
+  summary         String   @db.Text
+  fullContent     String?  @db.Text
+  category        String
+  region          String
+  countries       String[] // Array of country codes
+  impact          String
+  source          String
+  sourceUrl       String   @unique // Deduplication by URL
+  author          String?
+  imageUrl        String?
+  publishedDate   DateTime
+  fetchedAt       DateTime @default(now())
+
+  // AI-generated fields (to be populated later)
+  aiInsight       String?  @db.Text
+  rootCause       String?  @db.Text
+  confidence      Float?
+  predictions     String?  @db.Text // JSON string
+  keyIndicators   String[] // Array of keywords
+
+  // Metadata
+  language        String   @default("en")
+  readTime        Int?
+
+  @@index([publishedDate])
+  @@index([category])
+  @@index([region])
+  @@index([source])
+  @@index([fetchedAt])
+}
