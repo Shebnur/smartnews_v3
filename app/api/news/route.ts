@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
           source: article.source,
           sourceUrl: article.sourceUrl,
           author: article.author,
-          imageUrl: article.imageUrl,
+          imageUrl: article.imageUrl || undefined,
           publishedDate: article.publishedDate,
           aiInsight: article.aiInsight,
           rootCause: article.rootCause,
